@@ -8,7 +8,7 @@ A top-down 2D naval shooter built with **React 19**, **TypeScript (strict)** and
 | --- | --- | --- |
 | ![Menu](docs/screenshots/menu.jpg) | ![Ranking](docs/screenshots/captains-log.jpg) | ![Mobile](docs/screenshots/mobile.jpg) |
 
-> The original challenge brief (in Portuguese) is kept in [docs/CHALLENGE.md](docs/CHALLENGE.md).
+> Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md). The original challenge brief (in Portuguese) is kept in [docs/CHALLENGE.md](docs/CHALLENGE.md).
 
 ## Contents
 
@@ -79,6 +79,7 @@ npx playwright install chromium
 | `npm run test:e2e:ui` | Playwright in interactive mode |
 | `npm run test:e2e:update` | Regenerates the visual regression baselines |
 | `npm run test:e2e:report` | Opens the HTML report in `reports/playwright` |
+| `npm run perf` | Profiles the production build: 3-minute stress match and 5 play/exit memory cycles (writes `reports/perf/`) |
 | `npm run balance` | Plays matches with a bot and prints score/survival stats |
 | `npm run check` | `lint` + `typecheck` + `test:unit` |
 

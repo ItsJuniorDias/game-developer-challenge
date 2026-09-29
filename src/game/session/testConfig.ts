@@ -10,6 +10,8 @@ export interface TestConfig {
   manualClock?: boolean;
   firstSpawnDelaySeconds?: number;
   maxAliveEnemies?: number;
+  /** Profiling only: a very high value keeps a stress match alive for its full length. */
+  playerMaxHealth?: number;
   playerSpawn?: Vec2 & { rotation: number };
   disableSound?: boolean;
   /** Axios timeout used by the ranking/history client. */

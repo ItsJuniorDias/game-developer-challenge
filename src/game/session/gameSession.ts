@@ -63,6 +63,7 @@ export class GameSession {
     this.seed = test?.seed ?? randomSeed();
     const base: GameConfig = {
       ...BASE_GAME_CONFIG,
+      player: { ...BASE_GAME_CONFIG.player, maxHealth: test?.playerMaxHealth ?? BASE_GAME_CONFIG.player.maxHealth },
       spawn: {
         ...BASE_GAME_CONFIG.spawn,
         firstSpawnDelaySeconds: test?.firstSpawnDelaySeconds ?? BASE_GAME_CONFIG.spawn.firstSpawnDelaySeconds,
