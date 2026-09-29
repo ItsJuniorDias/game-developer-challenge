@@ -8,6 +8,8 @@ import { damageTier, shipFrame } from './shipPalette';
 /** Sprites point their bow down (+y); headings are measured from +x. */
 export const SPRITE_ROTATION_OFFSET = -Math.PI / 2;
 const HIT_FLASH_SECONDS = 0.12;
+/** Distance between the ship centre and the nearest edge of its health bar. */
+const BAR_OFFSET = 64;
 const FIRE_POSITIONS: readonly (readonly [number, number])[] = [
   [-12, 6],
   [14, -18],
@@ -54,7 +56,10 @@ export class ShipView {
     const y = lerp(ship.prevY, ship.y, alpha);
     this.body.position.set(x, y);
     this.body.rotation = lerpAngle(ship.prevRotation, ship.rotation, alpha) + SPRITE_ROTATION_OFFSET;
-    this.healthBar.view.position.set(x, y - 64);
+    // Above the ship, unless that would leave the arena: then it moves below the hull.
+    const above = y - BAR_OFFSET;
+    const barBottom = above - this.healthBar.height < 0 ? y + BAR_OFFSET + this.healthBar.height : above;
+    this.healthBar.view.position.set(x, barBottom);
     this.healthBar.setRatio(ship.health / ship.maxHealth);
 
     const tier = damageTier(ship.health, ship.maxHealth);

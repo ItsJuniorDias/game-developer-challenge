@@ -1,0 +1,56 @@
+# Runs the full check on Linux inside the official Playwright image.
+# Manual only (Actions tab → "E2E (Linux)" → Run workflow). With
+# "update_snapshots" enabled it creates the Linux visual baselines
+# (e2e/visual.spec.ts-snapshots/*-linux.png) and commits them.
+name: E2E (Linux)
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Create or refresh the Linux visual baselines and commit them
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      CI: 'true'
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint, type check and unit tests
+        run: npm run check
+
+      - name: Playwright (desktop + mobile)
+        run: npx playwright test ${{ inputs.update_snapshots && '--update-snapshots' || '' }}
+
+      - name: Upload HTML report and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-linux
+          path: |
+            reports/playwright
+            test-results
+          retention-days: 14
+
+      - name: Commit Linux visual baselines
+        if: inputs.update_snapshots
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/visual.spec.ts-snapshots/*-linux.png
+          git diff --cached --quiet || git commit -m "Add Linux visual regression baselines"
+          git push

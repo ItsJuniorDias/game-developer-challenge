@@ -1,7 +1,10 @@
 import { advanceBy, expect, hold, setupApp, startMatch, state, test, turnTo } from './fixtures';
 
-/** North-west island collision box (see src/game/sim/arena.ts: col 1,row 1, 4x3 tiles, 16u inset). */
-const NW_ISLAND = { left: 144, right: 624, top: 144, bottom: 496 };
+/** North-west island collision box (see src/game/sim/arena.ts: col 1,row 1, 4x3 tiles, 8u inset). */
+const NW_ISLAND = { left: 136, right: 632, top: 136, bottom: 504 };
+/** The hull is three circles along the keel: the bow/stern tips are this far from the centre. */
+const HULL_HALF_LENGTH = 50;
+const HULL_HALF_WIDTH = 26;
 
 test.describe('Movement', () => {
   test('sails forward and rotates both ways with the keyboard', async ({ page }) => {
@@ -33,12 +36,13 @@ test.describe('Movement', () => {
     await startMatch(page);
     await hold(page, 'KeyW', 6000);
     let s = await state(page);
-    expect(s.player.y).toBeCloseTo(30, 0);
+    // The bow touches the top edge: the whole hull stays inside the visible arena.
+    expect(s.player.y).toBeCloseTo(HULL_HALF_LENGTH, 0);
     await turnTo(page, 0);
     await hold(page, 'KeyW', 6000);
     s = await state(page);
-    expect(s.player.x).toBeCloseTo(2048 - 30, 0);
-    expect(s.player.y).toBeGreaterThanOrEqual(30);
+    expect(s.player.x).toBeCloseTo(2048 - HULL_HALF_LENGTH, 0);
+    expect(s.player.y).toBeGreaterThanOrEqual(HULL_HALF_WIDTH);
   });
 
   test('cannot sail through an island', async ({ page }) => {
@@ -46,9 +50,9 @@ test.describe('Movement', () => {
     await startMatch(page);
     await hold(page, 'KeyW', 4000);
     const s = await state(page);
-    // Stopped against the island's east shore, radius 30 away from the collision box.
-    expect(s.player.x).toBeGreaterThanOrEqual(NW_ISLAND.right + 29);
-    expect(s.player.x).toBeLessThan(NW_ISLAND.right + 40);
+    // The bow stopped at the island's east shore: it never enters the collision box.
+    expect(s.player.x - HULL_HALF_LENGTH).toBeGreaterThanOrEqual(NW_ISLAND.right - 0.5);
+    expect(s.player.x - HULL_HALF_LENGTH).toBeLessThan(NW_ISLAND.right + 8);
     expect(s.player.y).toBeCloseTo(320, 0);
     expect(s.player.speed).toBeLessThan(5);
   });

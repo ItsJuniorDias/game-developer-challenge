@@ -37,6 +37,8 @@ function usePortraitTouch(): boolean {
  */
 export function GameScreen() {
   const hostRef = useRef<HTMLDivElement>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const [session, setSession] = useState<GameSession | null>(null);
   const endTimer = useRef<number | null>(null);
   const portrait = usePortraitTouch();
@@ -63,6 +65,8 @@ export function GameScreen() {
       },
     });
     registerDebugSession(created);
+    // Like every other screen, move focus to the heading of the battle screen.
+    headingRef.current?.focus({ preventScroll: true });
     setSession(created);
     void created.start();
     document.title = 'Battle · Pirate Battle';
@@ -79,6 +83,24 @@ export function GameScreen() {
     session ? session.store.getSnapshot : nullSnapshot,
   );
   const announcement = useAnnouncements(hud);
+  const hudVisible = hud !== null && hud.phase !== 'loading' && hud.phase !== 'error';
+
+  // Keep the arena below the HUD band so no ship or health bar hides under it.
+  useEffect(() => {
+    const screen = screenRef.current;
+    if (!session || !screen || !hudVisible) return;
+    const hudElement = screen.querySelector<HTMLElement>('[data-testid="hud"]');
+    if (!hudElement) return;
+    const update = (): void => {
+      const top = Math.ceil(hudElement.getBoundingClientRect().bottom - screen.getBoundingClientRect().top + 4);
+      session.setViewportInsets({ top: Math.max(0, top), right: 0, bottom: 0, left: 0 });
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(screen);
+    observer.observe(hudElement);
+    update();
+    return () => observer.disconnect();
+  }, [session, hudVisible]);
 
   useEffect(() => {
     if (portrait && session) session.pause('orientation');
@@ -87,8 +109,10 @@ export function GameScreen() {
   const quit = useCallback(() => navigate({ name: 'menu' }), []);
 
   return (
-    <div className="game-screen" data-testid="game-screen" data-phase={hud?.phase ?? 'loading'}>
-      <h1 className="visually-hidden">Battle</h1>
+    <div ref={screenRef} className="game-screen" data-testid="game-screen" data-phase={hud?.phase ?? 'loading'}>
+      <h1 ref={headingRef} className="visually-hidden" tabIndex={-1}>
+        Battle
+      </h1>
       <div ref={hostRef} className="game-canvas-host" />
       {session && hud ? (
         <>

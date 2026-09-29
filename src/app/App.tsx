@@ -1,9 +1,9 @@
 import { useMatchSubmissionWorker } from '../api/matchSubmission';
 import { CaptainsLog } from '../features/log/CaptainsLog';
-import { GameScreen } from '../features/match/GameScreen';
 import { MainMenu } from '../features/menu/MainMenu';
 import { OptionsScreen } from '../features/options/OptionsScreen';
 import { ResultScreen } from '../features/result/ResultScreen';
+import { GameRoute } from './GameRoute';
 import { useRoute } from './router';
 
 export function App() {
@@ -11,7 +11,7 @@ export function App() {
   const route = useRoute();
   switch (route.name) {
     case 'play':
-      return <GameScreen />;
+      return <GameRoute />;
     case 'options':
       return <OptionsScreen />;
     case 'result':

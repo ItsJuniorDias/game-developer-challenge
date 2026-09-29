@@ -122,19 +122,20 @@ test.describe('Match registration', () => {
   });
 
   test('late responses never overwrite newer data', async ({ page }) => {
-    await setupApp(page, {}, { scenario: 'out-of-order' });
+    // Out-of-order scenario: odd requests take 1.5 s, even ones 0.1 s.
+    await setupApp(page, {}, { scenario: 'out-of-order', options: { sessionTimeSeconds: 60, spawnIntervalSeconds: 3 } });
     await openMenu(page);
-    // Request #1 (120 s / 3 s) is slow; request #2 (60 s / 2 s) is fast.
+    // Request #1 (60 s / 3 s, no fixtures) is the slow one...
     await page.getByTestId('menu-ranking').click();
     await expect(page.getByTestId('log-loading')).toBeVisible();
-    await page.getByLabel('Battle length').selectOption('60');
+    // ...and request #2 (60 s / 2 s) answers first.
     await page.getByLabel('Spawn interval').selectOption('2');
     const rows = page.getByTestId('ranking-row');
     await expect(rows.first()).toContainText('Sea Wolf');
-    // Wait until the slow response has certainly arrived.
-    await page.waitForTimeout(2000);
+    // Request #1 lands afterwards (empty list for its old configuration): the table must not change.
+    await page.waitForTimeout(1800);
     await expect(page.getByTestId('ranking-config')).toHaveText('60 second battles · 2 second spawn interval');
     await expect(rows).toHaveCount(2);
-    await expect(rows.first()).toContainText('Sea Wolf');
+    await expect(page.getByTestId('log-empty')).toHaveCount(0);
   });
 });

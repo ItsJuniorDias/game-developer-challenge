@@ -28,9 +28,13 @@ export interface BroadsideConfig extends WeaponConfig {
 
 export interface ShipHullConfig {
   readonly maxHealth: number;
-  /** Collision circle radius used against islands, bounds and other ships. */
+  /** Radius used for ship-to-ship contact (rams and separation). */
   readonly radius: number;
-  /** Half extents of the hull ellipse used for projectile hits. */
+  /**
+   * Half extents of the hull. Projectile hits use this ellipse; islands and
+   * arena bounds use three circles of radius `hitHalfWidth` along the keel,
+   * so the bow and stern cannot enter the shore or leave the arena.
+   */
   readonly hitHalfLength: number;
   readonly hitHalfWidth: number;
   /** Top speed in world units per second. */
@@ -52,18 +56,27 @@ export interface PlayerConfig extends ShipHullConfig {
   readonly broadside: BroadsideConfig;
 }
 
-export interface ChaserConfig extends ShipHullConfig {
+export interface EnemyHullConfig extends ShipHullConfig {
+  /** Acceleration and braking (world units per second squared). */
+  readonly acceleration: number;
+  /** Fraction of the target speed kept while turning hard (slows down to round islands). */
+  readonly minTurnThrottle: number;
+}
+
+export interface ChaserConfig extends EnemyHullConfig {
   /** Damage dealt to the player when the chaser rams it (the chaser explodes). */
   readonly ramDamage: number;
 }
 
-export interface ShooterConfig extends ShipHullConfig {
+export interface ShooterConfig extends EnemyHullConfig {
   /** The shooter opens fire when the player is within this distance. */
   readonly attackRange: number;
   /** The shooter stops approaching once it is this close to the player. */
   readonly holdDistance: number;
   /** Max heading error (radians) tolerated before firing. */
   readonly aimTolerance: number;
+  /** Fraction of the player's motion during the cannonball flight used to lead the aim. */
+  readonly leadFactor: number;
   readonly cannon: WeaponConfig;
 }
 
@@ -82,6 +95,10 @@ export interface SpawnConfig {
   readonly minDistanceFromPlayer: number;
   /** Minimum clearance between a spawn point and islands / other ships. */
   readonly clearance: number;
+  /** Random candidates tried before falling back to the farthest free point. */
+  readonly attempts: number;
+  /** The fallback point is rejected if it is closer than this to the player. */
+  readonly fallbackMinDistanceFromPlayer: number;
   /** Seconds after spawning during which an enemy cannot attack. */
   readonly graceSeconds: number;
 }
@@ -91,8 +108,32 @@ export interface MatchConfig {
   readonly durationSeconds: number;
 }
 
+export interface AiConfig {
+  /** Seconds between two A* searches of the same enemy. */
+  readonly repathIntervalSeconds: number;
+  /** Distance at which a path waypoint counts as reached. */
+  readonly waypointReachDistance: number;
+  /** Clearance a cannonball needs for the Shooter to consider its shot clear. */
+  readonly shotClearance: number;
+  /** How far ahead an enemy looks for other ships blocking its lane. */
+  readonly avoidanceLookahead: number;
+  /** Maximum heading offset (radians) used to sail around a blocking ship. */
+  readonly avoidanceMaxTurn: number;
+}
+
+export interface CollisionConfig {
+  /** Cannonball radius used for hits against hulls. */
+  readonly projectileRadius: number;
+  /** Share of a player/enemy overlap resolved by moving the player (the rest moves the enemy). */
+  readonly playerPushShare: number;
+  /** Minimum seconds between two "ship bump" feedback events. */
+  readonly bumpEventCooldownSeconds: number;
+}
+
 export interface GameConfig {
   readonly match: MatchConfig;
+  readonly ai: AiConfig;
+  readonly collision: CollisionConfig;
   readonly spawn: SpawnConfig;
   readonly player: PlayerConfig;
   readonly chaser: ChaserConfig;
@@ -123,6 +164,18 @@ export const BASE_GAME_CONFIG: GameConfig = {
   match: {
     durationSeconds: DEFAULT_OPTIONS.sessionTimeSeconds,
   },
+  ai: {
+    repathIntervalSeconds: 0.5,
+    waypointReachDistance: 40,
+    shotClearance: 8,
+    avoidanceLookahead: 130,
+    avoidanceMaxTurn: 1.1,
+  },
+  collision: {
+    projectileRadius: 5,
+    playerPushShare: 0.3,
+    bumpEventCooldownSeconds: 0.35,
+  },
   spawn: {
     intervalSeconds: DEFAULT_OPTIONS.spawnIntervalSeconds,
     firstSpawnDelaySeconds: 1.5,
@@ -131,6 +184,8 @@ export const BASE_GAME_CONFIG: GameConfig = {
     maxAliveEnemies: 10,
     minDistanceFromPlayer: 700,
     clearance: 24,
+    attempts: 40,
+    fallbackMinDistanceFromPlayer: 495,
     graceSeconds: 1,
   },
   player: {
@@ -160,6 +215,8 @@ export const BASE_GAME_CONFIG: GameConfig = {
     hitHalfWidth: 26,
     maxSpeed: 150,
     turnSpeed: 2,
+    acceleration: 225,
+    minTurnThrottle: 0.3,
     ramDamage: 15,
   },
   shooter: {
@@ -169,9 +226,12 @@ export const BASE_GAME_CONFIG: GameConfig = {
     hitHalfWidth: 26,
     maxSpeed: 125,
     turnSpeed: 1.7,
+    acceleration: 187.5,
+    minTurnThrottle: 0.3,
     attackRange: 560,
     holdDistance: 380,
     aimTolerance: 0.14,
+    leadFactor: 0.7,
     cannon: { damage: 8, projectileSpeed: 520, range: 620, cooldownSeconds: 2.2 },
   },
   fixedStepSeconds: 1 / 60,

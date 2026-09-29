@@ -61,7 +61,9 @@ test.describe('Combat', () => {
     const target = s.enemies[0]!;
     expect(target.kind).toBe('chaser');
 
-    const healthSeen: number[] = [target.health];
+    // Fire one cannonball at a time and record the health change it causes.
+    const perShot: number[] = [];
+    let health = target.health;
     let destroyed: GameState | null = null;
     for (let attempt = 0; attempt < 12 && !destroyed; attempt++) {
       s = await state(page);
@@ -71,15 +73,19 @@ test.describe('Combat', () => {
       await page.keyboard.down('Space');
       await advance(page, 17);
       await page.keyboard.up('Space');
-      await advanceBy(page, 500, 100);
+      // Let this ball resolve (hit, expire) before the next one: flight time < 1 s.
+      for (let t = 0; t < 10 && (await state(page)).projectiles.some((p) => p.owner === 'player'); t++) await advance(page, 100, false);
       s = await state(page);
       const after = s.enemies.find((e) => e.id === target.id);
-      if (after) healthSeen.push(after.health);
-      else destroyed = s;
+      const now = after ? after.health : 0;
+      perShot.push(health - now);
+      health = now;
+      if (!after) destroyed = s;
     }
     expect(destroyed, 'the chaser should have been sunk').not.toBeNull();
-    // 40 hp and 20 damage per ball: every hit removes exactly 20.
-    for (const hp of healthSeen) expect(hp % 20).toBe(0);
+    // Every ball deals its 20 damage exactly once (0 on a miss), so a 40 hp chaser needs two hits.
+    for (const delta of perShot) expect([0, 20]).toContain(delta);
+    expect(perShot.filter((d) => d === 20)).toHaveLength(2);
     expect(destroyed!.score).toBe(1);
     expect(destroyed!.stats.enemiesDestroyed).toBe(1);
     await expect(page.getByTestId('hud-score')).toContainText('1');

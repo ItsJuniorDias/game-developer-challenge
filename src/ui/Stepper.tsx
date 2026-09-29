@@ -32,7 +32,7 @@ export function Stepper({ label, value, unit, min, max, step, error, hint, onCha
         {label}
       </label>
       <div className="stepper__row">
-        <RoundButton icon="minus" label={`Decrease ${label.toLowerCase()}`} onClick={() => nudge(-1)} disabled={valid && numeric <= min} />
+        <RoundButton icon="minus" label={`Decrease ${label.toLowerCase()}`} onClick={() => nudge(-1)} unavailable={valid && numeric <= min} />
         <div className="stepper__field">
           <input
             id={id}
@@ -51,7 +51,7 @@ export function Stepper({ label, value, unit, min, max, step, error, hint, onCha
             {unit}
           </span>
         </div>
-        <RoundButton icon="plus" label={`Increase ${label.toLowerCase()}`} onClick={() => nudge(1)} disabled={valid && numeric >= max} />
+        <RoundButton icon="plus" label={`Increase ${label.toLowerCase()}`} onClick={() => nudge(1)} unavailable={valid && numeric >= max} />
       </div>
       <p id={hintId} className="stepper__hint">
         {hint}

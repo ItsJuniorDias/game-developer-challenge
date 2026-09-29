@@ -1,0 +1,1477 @@
+{
+  "kind": "three-minute-match",
+  "environment": {
+    "cpu": "Apple M1",
+    "cores": 8,
+    "memoryGb": 8,
+    "os": "Darwin 27.0.0 (darwin/arm64)",
+    "browser": "chromium 153.0.8010.12",
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "deviceScaleFactor": 1
+  },
+  "config": {
+    "sessionTimeSeconds": 180,
+    "spawnIntervalSeconds": 1,
+    "seed": 777,
+    "maxAliveEnemies": 10,
+    "playerMaxHealth": 1000000,
+    "build": "vite build (production)"
+  },
+  "frames": {
+    "count": 10803,
+    "avgFps": 59.736964922020675,
+    "avgFrameMs": 16.740053688790148,
+    "p50FrameMs": 16.69999999999709,
+    "p95FrameMs": 16.79999999998836,
+    "p99FrameMs": 16.80000000000291,
+    "maxFrameMs": 800,
+    "framesOver20ms": 2,
+    "framesOver33ms": 1
+  },
+  "entities": {
+    "peak": 14,
+    "average": 9.296089385474861,
+    "peakEnemies": 10,
+    "peakProjectiles": 5,
+    "peakParticles": 225
+  },
+  "simulatedSeconds": 179.9333,
+  "samples": [
+    {
+      "t": 1.0333,
+      "phase": "running",
+      "enemies": 0,
+      "projectiles": 0,
+      "particles": 11,
+      "ships": 1
+    },
+    {
+      "t": 2.0333,
+      "phase": "running",
+      "enemies": 1,
+      "projectiles": 0,
+      "particles": 14,
+      "ships": 2
+    },
+    {
+      "t": 3.05,
+      "phase": "running",
+      "enemies": 2,
+      "projectiles": 2,
+      "particles": 31,
+      "ships": 3
+    },
+    {
+      "t": 4.05,
+      "phase": "running",
+      "enemies": 3,
+      "projectiles": 1,
+      "particles": 53,
+      "ships": 4
+    },
+    {
+      "t": 5.0667,
+      "phase": "running",
+      "enemies": 3,
+      "projectiles": 0,
+      "particles": 61,
+      "ships": 4
+    },
+    {
+      "t": 6.0667,
+      "phase": "running",
+      "enemies": 4,
+      "projectiles": 0,
+      "particles": 53,
+      "ships": 5
+    },
+    {
+      "t": 7.0667,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 67,
+      "ships": 6
+    },
+    {
+      "t": 8.0667,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 67,
+      "ships": 6
+    },
+    {
+      "t": 9.0833,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 2,
+      "particles": 77,
+      "ships": 7
+    },
+    {
+      "t": 10.0833,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 1,
+      "particles": 131,
+      "ships": 6
+    },
+    {
+      "t": 11.1,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 95,
+      "ships": 6
+    },
+    {
+      "t": 12.1,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 81,
+      "ships": 6
+    },
+    {
+      "t": 13.1,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 78,
+      "ships": 7
+    },
+    {
+      "t": 14.1,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 111,
+      "ships": 6
+    },
+    {
+      "t": 15.1167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 3,
+      "particles": 86,
+      "ships": 7
+    },
+    {
+      "t": 16.1167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 84,
+      "ships": 8
+    },
+    {
+      "t": 17.1167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 118,
+      "ships": 8
+    },
+    {
+      "t": 18.1167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 130,
+      "ships": 8
+    },
+    {
+      "t": 19.1333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 105,
+      "ships": 8
+    },
+    {
+      "t": 20.1333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 4,
+      "particles": 104,
+      "ships": 8
+    },
+    {
+      "t": 21.1333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 137,
+      "ships": 8
+    },
+    {
+      "t": 22.15,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 86,
+      "ships": 8
+    },
+    {
+      "t": 23.15,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 72,
+      "ships": 9
+    },
+    {
+      "t": 24.1667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 98,
+      "ships": 9
+    },
+    {
+      "t": 25.1667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 146,
+      "ships": 8
+    },
+    {
+      "t": 26.1667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 107,
+      "ships": 9
+    },
+    {
+      "t": 27.1833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 3,
+      "particles": 92,
+      "ships": 9
+    },
+    {
+      "t": 28.1833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 85,
+      "ships": 9
+    },
+    {
+      "t": 29.1833,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 4,
+      "particles": 101,
+      "ships": 10
+    },
+    {
+      "t": 30.2833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 151,
+      "ships": 9
+    },
+    {
+      "t": 31.2833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 111,
+      "ships": 9
+    },
+    {
+      "t": 32.3,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 117,
+      "ships": 10
+    },
+    {
+      "t": 33.3,
+      "phase": "running",
+      "enemies": 10,
+      "projectiles": 1,
+      "particles": 107,
+      "ships": 11
+    },
+    {
+      "t": 34.3,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 157,
+      "ships": 9
+    },
+    {
+      "t": 35.3167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 5,
+      "particles": 124,
+      "ships": 9
+    },
+    {
+      "t": 36.3167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 125,
+      "ships": 8
+    },
+    {
+      "t": 37.3167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 92,
+      "ships": 9
+    },
+    {
+      "t": 38.3,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 94,
+      "ships": 9
+    },
+    {
+      "t": 39.3167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 109,
+      "ships": 9
+    },
+    {
+      "t": 40.3167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 117,
+      "ships": 9
+    },
+    {
+      "t": 41.3333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 176,
+      "ships": 8
+    },
+    {
+      "t": 42.3333,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 2,
+      "particles": 152,
+      "ships": 7
+    },
+    {
+      "t": 43.3333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 100,
+      "ships": 8
+    },
+    {
+      "t": 44.3333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 121,
+      "ships": 8
+    },
+    {
+      "t": 45.35,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 5,
+      "particles": 168,
+      "ships": 6
+    },
+    {
+      "t": 46.35,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 85,
+      "ships": 7
+    },
+    {
+      "t": 47.35,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 1,
+      "particles": 132,
+      "ships": 6
+    },
+    {
+      "t": 48.35,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 2,
+      "particles": 89,
+      "ships": 6
+    },
+    {
+      "t": 49.3667,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 3,
+      "particles": 100,
+      "ships": 6
+    },
+    {
+      "t": 50.3667,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 1,
+      "particles": 91,
+      "ships": 6
+    },
+    {
+      "t": 51.3667,
+      "phase": "running",
+      "enemies": 4,
+      "projectiles": 0,
+      "particles": 122,
+      "ships": 5
+    },
+    {
+      "t": 52.3833,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 1,
+      "particles": 73,
+      "ships": 6
+    },
+    {
+      "t": 53.3833,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 101,
+      "ships": 6
+    },
+    {
+      "t": 54.3833,
+      "phase": "running",
+      "enemies": 4,
+      "projectiles": 2,
+      "particles": 130,
+      "ships": 5
+    },
+    {
+      "t": 55.3833,
+      "phase": "running",
+      "enemies": 4,
+      "projectiles": 0,
+      "particles": 80,
+      "ships": 5
+    },
+    {
+      "t": 56.4,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 79,
+      "ships": 6
+    },
+    {
+      "t": 57.4,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 101,
+      "ships": 6
+    },
+    {
+      "t": 58.4167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 90,
+      "ships": 7
+    },
+    {
+      "t": 59.4167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 4,
+      "particles": 115,
+      "ships": 7
+    },
+    {
+      "t": 60.4333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 4,
+      "particles": 109,
+      "ships": 8
+    },
+    {
+      "t": 61.45,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 5,
+      "particles": 144,
+      "ships": 7
+    },
+    {
+      "t": 62.45,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 82,
+      "ships": 8
+    },
+    {
+      "t": 63.45,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 91,
+      "ships": 8
+    },
+    {
+      "t": 64.4667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 116,
+      "ships": 8
+    },
+    {
+      "t": 65.4667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 111,
+      "ships": 8
+    },
+    {
+      "t": 66.4667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 143,
+      "ships": 8
+    },
+    {
+      "t": 67.4667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 119,
+      "ships": 9
+    },
+    {
+      "t": 68.4833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 129,
+      "ships": 8
+    },
+    {
+      "t": 69.4833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 3,
+      "particles": 108,
+      "ships": 9
+    },
+    {
+      "t": 70.4833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 89,
+      "ships": 9
+    },
+    {
+      "t": 71.4833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 102,
+      "ships": 9
+    },
+    {
+      "t": 72.4833,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 88,
+      "ships": 10
+    },
+    {
+      "t": 73.5,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 3,
+      "particles": 124,
+      "ships": 10
+    },
+    {
+      "t": 74.5,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 121,
+      "ships": 10
+    },
+    {
+      "t": 75.5,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 2,
+      "particles": 225,
+      "ships": 7
+    },
+    {
+      "t": 76.5167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 93,
+      "ships": 9
+    },
+    {
+      "t": 77.5333,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 3,
+      "particles": 126,
+      "ships": 7
+    },
+    {
+      "t": 78.5333,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 98,
+      "ships": 7
+    },
+    {
+      "t": 79.5333,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 88,
+      "ships": 7
+    },
+    {
+      "t": 80.5333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 88,
+      "ships": 8
+    },
+    {
+      "t": 81.5333,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 101,
+      "ships": 9
+    },
+    {
+      "t": 82.55,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 3,
+      "particles": 134,
+      "ships": 9
+    },
+    {
+      "t": 83.55,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 88,
+      "ships": 9
+    },
+    {
+      "t": 84.55,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 142,
+      "ships": 8
+    },
+    {
+      "t": 85.55,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 113,
+      "ships": 8
+    },
+    {
+      "t": 86.5667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 83,
+      "ships": 9
+    },
+    {
+      "t": 87.5667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 114,
+      "ships": 9
+    },
+    {
+      "t": 88.5667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 99,
+      "ships": 9
+    },
+    {
+      "t": 89.5667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 100,
+      "ships": 10
+    },
+    {
+      "t": 90.5833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 151,
+      "ships": 8
+    },
+    {
+      "t": 91.5833,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 4,
+      "particles": 158,
+      "ships": 7
+    },
+    {
+      "t": 92.5833,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 104,
+      "ships": 7
+    },
+    {
+      "t": 93.5833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 93,
+      "ships": 8
+    },
+    {
+      "t": 94.5833,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 2,
+      "particles": 143,
+      "ships": 7
+    },
+    {
+      "t": 95.6,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 141,
+      "ships": 6
+    },
+    {
+      "t": 96.6,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 5,
+      "particles": 75,
+      "ships": 7
+    },
+    {
+      "t": 97.6167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 79,
+      "ships": 8
+    },
+    {
+      "t": 98.6167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 108,
+      "ships": 8
+    },
+    {
+      "t": 99.6333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 4,
+      "particles": 113,
+      "ships": 8
+    },
+    {
+      "t": 100.6333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 109,
+      "ships": 8
+    },
+    {
+      "t": 101.6333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 116,
+      "ships": 8
+    },
+    {
+      "t": 102.65,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 125,
+      "ships": 8
+    },
+    {
+      "t": 103.65,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 110,
+      "ships": 8
+    },
+    {
+      "t": 104.65,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 94,
+      "ships": 8
+    },
+    {
+      "t": 105.65,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 128,
+      "ships": 7
+    },
+    {
+      "t": 106.6667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 65,
+      "ships": 8
+    },
+    {
+      "t": 107.6667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 65,
+      "ships": 8
+    },
+    {
+      "t": 108.6667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 77,
+      "ships": 9
+    },
+    {
+      "t": 109.6667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 3,
+      "particles": 100,
+      "ships": 10
+    },
+    {
+      "t": 110.6667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 127,
+      "ships": 10
+    },
+    {
+      "t": 111.6667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 107,
+      "ships": 10
+    },
+    {
+      "t": 112.6833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 145,
+      "ships": 9
+    },
+    {
+      "t": 113.6833,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 2,
+      "particles": 119,
+      "ships": 10
+    },
+    {
+      "t": 114.6833,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 103,
+      "ships": 10
+    },
+    {
+      "t": 115.7,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 142,
+      "ships": 9
+    },
+    {
+      "t": 116.7,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 148,
+      "ships": 7
+    },
+    {
+      "t": 117.7,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 74,
+      "ships": 8
+    },
+    {
+      "t": 118.7,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 96,
+      "ships": 9
+    },
+    {
+      "t": 119.7167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 111,
+      "ships": 8
+    },
+    {
+      "t": 120.7167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 121,
+      "ships": 8
+    },
+    {
+      "t": 121.7167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 97,
+      "ships": 9
+    },
+    {
+      "t": 122.7167,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 98,
+      "ships": 10
+    },
+    {
+      "t": 123.7333,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 4,
+      "particles": 119,
+      "ships": 10
+    },
+    {
+      "t": 124.75,
+      "phase": "running",
+      "enemies": 10,
+      "projectiles": 2,
+      "particles": 134,
+      "ships": 11
+    },
+    {
+      "t": 125.75,
+      "phase": "running",
+      "enemies": 10,
+      "projectiles": 2,
+      "particles": 132,
+      "ships": 11
+    },
+    {
+      "t": 126.75,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 142,
+      "ships": 9
+    },
+    {
+      "t": 127.75,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 81,
+      "ships": 10
+    },
+    {
+      "t": 128.75,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 109,
+      "ships": 9
+    },
+    {
+      "t": 129.75,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 90,
+      "ships": 10
+    },
+    {
+      "t": 130.7667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 1,
+      "particles": 102,
+      "ships": 10
+    },
+    {
+      "t": 131.7667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 116,
+      "ships": 10
+    },
+    {
+      "t": 132.7667,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 2,
+      "particles": 114,
+      "ships": 10
+    },
+    {
+      "t": 133.7667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 142,
+      "ships": 9
+    },
+    {
+      "t": 134.7667,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 109,
+      "ships": 9
+    },
+    {
+      "t": 135.7833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 140,
+      "ships": 8
+    },
+    {
+      "t": 136.7833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 103,
+      "ships": 9
+    },
+    {
+      "t": 137.7833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 165,
+      "ships": 8
+    },
+    {
+      "t": 138.7833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 102,
+      "ships": 8
+    },
+    {
+      "t": 139.7833,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 90,
+      "ships": 9
+    },
+    {
+      "t": 140.8,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 106,
+      "ships": 9
+    },
+    {
+      "t": 141.8,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 109,
+      "ships": 9
+    },
+    {
+      "t": 142.8,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 2,
+      "particles": 107,
+      "ships": 10
+    },
+    {
+      "t": 143.8,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 155,
+      "ships": 8
+    },
+    {
+      "t": 144.8,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 106,
+      "ships": 8
+    },
+    {
+      "t": 145.8167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 87,
+      "ships": 9
+    },
+    {
+      "t": 146.8167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 93,
+      "ships": 9
+    },
+    {
+      "t": 147.8167,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 1,
+      "particles": 130,
+      "ships": 9
+    },
+    {
+      "t": 148.8167,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 119,
+      "ships": 8
+    },
+    {
+      "t": 149.8167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 2,
+      "particles": 131,
+      "ships": 7
+    },
+    {
+      "t": 150.8167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 3,
+      "particles": 135,
+      "ships": 7
+    },
+    {
+      "t": 151.8333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 93,
+      "ships": 8
+    },
+    {
+      "t": 152.8333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 134,
+      "ships": 8
+    },
+    {
+      "t": 153.8333,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 4,
+      "particles": 116,
+      "ships": 9
+    },
+    {
+      "t": 154.8333,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 2,
+      "particles": 131,
+      "ships": 9
+    },
+    {
+      "t": 155.8333,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 115,
+      "ships": 9
+    },
+    {
+      "t": 156.8333,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 107,
+      "ships": 10
+    },
+    {
+      "t": 157.85,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 114,
+      "ships": 9
+    },
+    {
+      "t": 158.85,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 148,
+      "ships": 8
+    },
+    {
+      "t": 159.85,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 0,
+      "particles": 111,
+      "ships": 9
+    },
+    {
+      "t": 160.85,
+      "phase": "running",
+      "enemies": 9,
+      "projectiles": 0,
+      "particles": 131,
+      "ships": 10
+    },
+    {
+      "t": 161.8667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 148,
+      "ships": 8
+    },
+    {
+      "t": 162.8667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 2,
+      "particles": 103,
+      "ships": 8
+    },
+    {
+      "t": 163.8667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 3,
+      "particles": 69,
+      "ships": 8
+    },
+    {
+      "t": 164.8667,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 1,
+      "particles": 123,
+      "ships": 8
+    },
+    {
+      "t": 165.8833,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 112,
+      "ships": 8
+    },
+    {
+      "t": 166.8833,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 143,
+      "ships": 7
+    },
+    {
+      "t": 167.8833,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 0,
+      "particles": 127,
+      "ships": 6
+    },
+    {
+      "t": 168.9,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 96,
+      "ships": 7
+    },
+    {
+      "t": 169.9,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 96,
+      "ships": 7
+    },
+    {
+      "t": 170.9,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 98,
+      "ships": 7
+    },
+    {
+      "t": 171.9,
+      "phase": "running",
+      "enemies": 5,
+      "projectiles": 2,
+      "particles": 120,
+      "ships": 6
+    },
+    {
+      "t": 172.9167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 76,
+      "ships": 7
+    },
+    {
+      "t": 173.9167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 76,
+      "ships": 7
+    },
+    {
+      "t": 174.9167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 89,
+      "ships": 7
+    },
+    {
+      "t": 175.9167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 125,
+      "ships": 7
+    },
+    {
+      "t": 176.9167,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 1,
+      "particles": 110,
+      "ships": 7
+    },
+    {
+      "t": 177.9333,
+      "phase": "running",
+      "enemies": 6,
+      "projectiles": 0,
+      "particles": 106,
+      "ships": 7
+    },
+    {
+      "t": 178.9333,
+      "phase": "running",
+      "enemies": 7,
+      "projectiles": 0,
+      "particles": 86,
+      "ships": 8
+    },
+    {
+      "t": 179.9333,
+      "phase": "running",
+      "enemies": 8,
+      "projectiles": 5,
+      "particles": 112,
+      "ships": 9
+    }
+  ]
+}

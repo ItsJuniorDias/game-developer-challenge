@@ -111,7 +111,7 @@ export function OptionsForm({ context }: OptionsFormProps) {
         Changes apply to your next battle.
       </p>
       <div className="options-form__actions">
-        <GameButton type="submit" size="medium" disabled={!dirty || !valid} data-testid="options-save">
+        <GameButton type="submit" size="medium" unavailable={!dirty || !valid} data-testid="options-save">
           Save
         </GameButton>
         <GameButton variant="secondary" size="medium" onClick={restoreDefaults}>

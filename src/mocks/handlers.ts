@@ -139,7 +139,7 @@ function samePayload(a: MatchRecordInput, b: MatchRecordInput): boolean {
   );
 }
 
-const GAME_ASSET = /\.(png|json|xml|wav)(\?|$)/;
+const GAME_ASSET = /\.(png|json|xml|wav|js)(\?|$)/;
 
 /**
  * Test-only network conditions for game assets (see TestConfig): lets E2E
@@ -150,7 +150,8 @@ const assetConditions = http.get(GAME_ASSET, async ({ request }) => {
   const test = typeof window !== 'undefined' ? window.__PIRATE_TEST__ : undefined;
   if (!test?.assetFailure && !test?.assetDelayMs) return undefined;
   if (test.assetFailure && new RegExp(test.assetFailure).test(request.url)) return HttpResponse.error();
-  if (test.assetDelayMs) await delay(test.assetDelayMs);
+  const delayed = test.assetDelayPattern ? new RegExp(test.assetDelayPattern).test(request.url) : !request.url.endsWith('.js');
+  if (test.assetDelayMs && delayed) await delay(test.assetDelayMs);
   return passthrough();
 });
 
@@ -243,10 +244,13 @@ export const handlers = [
   http.post(API_ROUTES.matches, async ({ request }) => {
     const scenario = getScenario();
     const counter = ++requestCounter;
+    const epoch = mockDb.epoch;
     if (scenario === 'timeout') await delay('infinite');
     await delay(latencyFor(scenario, counter));
     const failure = failureFor(scenario, 'submit');
     if (failure) return failure;
+    // The Network lab reset the data while this request was in flight: do not resurrect it.
+    if (mockDb.epoch !== epoch) return errorResponse(503, 'data_reset', 'The mock database was reset while the request was in flight.');
 
     let json: unknown;
     try {

@@ -8,17 +8,35 @@ export interface ViewportFit {
   screenHeight: number;
 }
 
+export interface ViewportInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export const NO_INSETS: ViewportInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 /**
- * Letterboxes a fixed-size world into the screen while preserving its aspect
- * ratio. All gameplay happens in world units, so input and bounds never
- * depend on the canvas size or pixel density.
+ * Fits a fixed-size world into the screen area left free by the insets (e.g.
+ * the HUD band), preserving its aspect ratio and centring it. All gameplay
+ * happens in world units, so input and bounds never depend on the canvas size
+ * or pixel density.
  */
-export function fitWorld(worldWidth: number, worldHeight: number, screenWidth: number, screenHeight: number): ViewportFit {
-  const scale = Math.max(0.0001, Math.min(screenWidth / worldWidth, screenHeight / worldHeight));
+export function fitWorld(
+  worldWidth: number,
+  worldHeight: number,
+  screenWidth: number,
+  screenHeight: number,
+  insets: ViewportInsets = NO_INSETS,
+): ViewportFit {
+  const availableWidth = Math.max(1, screenWidth - insets.left - insets.right);
+  const availableHeight = Math.max(1, screenHeight - insets.top - insets.bottom);
+  const scale = Math.max(0.0001, Math.min(availableWidth / worldWidth, availableHeight / worldHeight));
   return {
     scale,
-    offsetX: (screenWidth - worldWidth * scale) / 2,
-    offsetY: (screenHeight - worldHeight * scale) / 2,
+    offsetX: insets.left + (availableWidth - worldWidth * scale) / 2,
+    offsetY: insets.top + (availableHeight - worldHeight * scale) / 2,
     screenWidth,
     screenHeight,
   };

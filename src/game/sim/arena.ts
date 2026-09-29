@@ -51,8 +51,8 @@ export type Obstacle =
   | { readonly kind: 'roundRect'; readonly id: string; readonly cx: number; readonly cy: number; readonly hx: number; readonly hy: number; readonly radius: number }
   | { readonly kind: 'circle'; readonly id: string; readonly cx: number; readonly cy: number; readonly radius: number };
 
-/** Transparent margin around the sand silhouette inside island tiles. */
-const ISLAND_INSET = 16;
+/** Transparent margin around the sand silhouette inside island tiles (retina tiles are opaque from ~4-8 px in). */
+const ISLAND_INSET = 8;
 const ISLAND_CORNER_RADIUS = 56;
 
 export const DEFAULT_LAYOUT: ArenaLayout = {

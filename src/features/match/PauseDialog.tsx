@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { PauseReason } from '../../game/session/hudStore';
 import { ControlsGuide } from '../../ui/ControlsGuide';
 import { Dialog } from '../../ui/Dialog';
@@ -9,7 +9,7 @@ const REASON_TEXT: Record<PauseReason, string> = {
   manual: 'Ready when you are.',
   focus_lost: 'Paused because the game lost focus.',
   hidden: 'Paused while the tab was hidden.',
-  orientation: 'Rotate your device to landscape to keep playing.',
+  orientation: 'Paused while the device was in portrait. Ready when you are.',
 };
 
 interface PauseDialogProps {
@@ -22,8 +22,20 @@ interface PauseDialogProps {
 export function PauseDialog({ open, reason, onResume, onQuit }: PauseDialogProps) {
   const titleId = useId();
   const textId = useId();
-  const resumeRef = useRef<HTMLButtonElement>(null);
+  // Focus starts on the heading, not on Resume: a gameplay key still held when
+  // the dialog opens (Space, Enter) must not activate a button by accident.
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [view, setView] = useState<'menu' | 'options' | 'controls'>('menu');
+  const firstView = useRef(true);
+
+  // Switching between menu / options / controls moves focus to the new heading.
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    titleRef.current?.focus();
+  }, [view]);
   const close = (): void => {
     setView('menu');
     onResume();
@@ -34,18 +46,18 @@ export function PauseDialog({ open, reason, onResume, onQuit }: PauseDialogProps
       onCancel={view === 'menu' ? close : () => setView('menu')}
       labelledBy={titleId}
       describedBy={textId}
-      initialFocusRef={resumeRef}
+      initialFocusRef={titleRef}
       testId="pause-dialog"
     >
       <div
         onKeyDown={(event) => {
-          if (event.code === 'KeyP' && view === 'menu') {
+          if (event.code === 'KeyP' && view === 'menu' && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
             event.preventDefault();
             close();
           }
         }}
       >
-        <h2 id={titleId} className="dialog__title">
+        <h2 id={titleId} ref={titleRef} className="dialog__title" tabIndex={-1}>
           {view === 'options' ? 'Options' : view === 'controls' ? 'Controls' : 'Paused'}
         </h2>
         {view === 'menu' ? (
@@ -54,9 +66,9 @@ export function PauseDialog({ open, reason, onResume, onQuit }: PauseDialogProps
               {reason ? REASON_TEXT[reason] : REASON_TEXT.manual}
             </p>
             <div className="dialog__stack">
-              <button ref={resumeRef} type="button" className="game-button game-button--primary game-button--large" onClick={close} data-testid="pause-resume">
-                <span className="game-button__label">Resume</span>
-              </button>
+              <GameButton onClick={close} data-testid="pause-resume">
+                Resume
+              </GameButton>
               <GameButton onClick={() => setView('options')} data-testid="pause-options">
                 Options
               </GameButton>

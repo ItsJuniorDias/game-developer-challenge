@@ -27,7 +27,7 @@ test.describe("Captain's Log: ranking and match history", () => {
     await setupApp(page);
     await openMenu(page);
     await page.getByTestId('menu-ranking').click();
-    await page.getByLabel('Battle length').selectOption('60');
+    await page.getByLabel('Battle length').fill('60');
     await page.getByLabel('Spawn interval').selectOption('2');
     await expect(page.getByTestId('ranking-config')).toHaveText('60 second battles · 2 second spawn interval');
     const rows = page.getByTestId('ranking-row');

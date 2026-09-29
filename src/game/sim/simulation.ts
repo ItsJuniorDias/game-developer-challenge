@@ -125,9 +125,10 @@ export class Simulation {
     updatePlayer(world, this.ctx, intent, h);
     updateEnemies(world, this.ctx, h);
     this.collisions.update(world, this.ctx, h);
-    updateProjectiles(world, this.ctx, h);
+    // A ram can sink the player: from then on nothing may hit, score or spawn.
+    if (world.player.alive) updateProjectiles(world, this.ctx, h);
     this.compact();
-    updateSpawner(world, this.ctx);
+    if (world.player.alive && world.time < this.durationSeconds - 1e-9) updateSpawner(world, this.ctx);
 
     const entities = 1 + world.enemies.length + world.projectiles.length;
     if (entities > world.stats.peakEntities) world.stats.peakEntities = entities;

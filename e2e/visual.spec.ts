@@ -1,10 +1,21 @@
-import type { Page } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import type { Page, TestInfo } from '@playwright/test';
 import { advance, expect, openMenu, setupApp, startMatch, STORAGE, test } from './fixtures';
 
 async function fontsReady(page: Page): Promise<void> {
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
+}
+
+/**
+ * Baselines are platform specific (font rasterisation differs between macOS
+ * and Linux). On a platform without baselines, the comparison is skipped with
+ * instructions instead of failing; `npm run test:e2e:update` creates them.
+ */
+function requireBaseline(testInfo: TestInfo, name: string): void {
+  const updating = testInfo.config.updateSnapshots === 'all' || testInfo.config.updateSnapshots === 'changed';
+  test.skip(!updating && !existsSync(testInfo.snapshotPath(name)), `No ${process.platform} baseline for ${name}: run "npm run test:e2e:update" once to create it.`);
 }
 
 const RESULT = {
@@ -24,14 +35,16 @@ const RESULT = {
 };
 
 test.describe('Visual regression', () => {
-  test('main menu', async ({ page }) => {
+  test('main menu', async ({ page }, testInfo) => {
+    requireBaseline(testInfo, 'menu.png');
     await setupApp(page);
     await openMenu(page);
     await fontsReady(page);
     await expect(page).toHaveScreenshot('menu.png', { fullPage: true });
   });
 
-  test('arena in a stable state', async ({ page }) => {
+  test('arena in a stable state', async ({ page }, testInfo) => {
+    requireBaseline(testInfo, 'arena.png');
     await setupApp(page, { firstSpawnDelaySeconds: 0.5, seed: 2024 }, { options: { sessionTimeSeconds: 120, spawnIntervalSeconds: 10 } });
     await startMatch(page);
     await page.keyboard.down('KeyW');
@@ -42,7 +55,8 @@ test.describe('Visual regression', () => {
     await expect(page).toHaveScreenshot('arena.png');
   });
 
-  test('result screen', async ({ page }) => {
+  test('result screen', async ({ page }, testInfo) => {
+    requireBaseline(testInfo, 'result.png');
     await setupApp(page, {}, { extra: { [STORAGE.lastResult]: RESULT } });
     await page.goto('/#/result');
     await expect(page.getByTestId('result-score')).toHaveText('24');

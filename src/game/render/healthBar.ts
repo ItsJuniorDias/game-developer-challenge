@@ -45,6 +45,8 @@ function croppedFill(source: Texture, rect: FillRect, step: number): Texture {
  */
 export class HealthBar {
   readonly view = new Container();
+  /** Height of the bar in world units (after scaling). */
+  readonly height: number;
   private readonly fill: Sprite;
   private readonly fillRect: FillRect;
   private readonly sheet: Spritesheet;
@@ -62,6 +64,7 @@ export class HealthBar {
     this.view.addChild(frame, this.fill);
     const scale = width / Math.max(1, frameTexture.width);
     this.view.scale.set(scale);
+    this.height = frameTexture.height * scale;
     this.view.pivot.set(frameTexture.width / 2, frameTexture.height);
   }
 

@@ -43,7 +43,8 @@ export function LoadErrorOverlay({ message, onRetry, onMenu }: { readonly messag
 export function EndBanner({ reason, score, onContinue }: { readonly reason: EndReason | null; readonly score: number; readonly onContinue: () => void }) {
   return (
     <div className="overlay overlay--transparent" data-testid="end-banner">
-      <div className="overlay__card overlay__card--banner" role="alert">
+      {/* Announced once by the battle's live region; not a second alert. */}
+      <div className="overlay__card overlay__card--banner">
         <h2 className="overlay__title">{reason === 'defeated' ? 'Your ship sank!' : "Time's up!"}</h2>
         <p className="overlay__text">
           Final score: <strong>{score}</strong>

@@ -4,8 +4,6 @@ import type { SimContext } from '../context';
 import { createShip } from '../entities';
 import type { WorldState } from '../types';
 
-const SPAWN_ATTEMPTS = 40;
-
 function aliveEnemies(world: WorldState): number {
   let count = 0;
   for (const e of world.enemies) if (e.alive) count++;
@@ -30,7 +28,7 @@ export function findSpawnPoint(world: WorldState, ctx: SimContext, radius: numbe
   const minDistSq = ctx.config.spawn.minDistanceFromPlayer ** 2;
   const shipClearance = radius + ctx.config.spawn.clearance;
 
-  for (let attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < ctx.config.spawn.attempts; attempt++) {
     const point = ctx.rng.pick(points);
     if (distanceSq(point.x, point.y, player.x, player.y) < minDistSq) continue;
     if (!isClearOfShips(world, point, shipClearance)) continue;
@@ -48,7 +46,7 @@ export function findSpawnPoint(world: WorldState, ctx: SimContext, radius: numbe
       best = point;
     }
   }
-  return best && bestDist >= minDistSq * 0.5 ? best : null;
+  return best && bestDist >= ctx.config.spawn.fallbackMinDistanceFromPlayer ** 2 ? best : null;
 }
 
 export function nextEnemyKind(world: WorldState, ctx: SimContext): EnemyKind {

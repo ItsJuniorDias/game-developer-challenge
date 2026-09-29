@@ -30,7 +30,9 @@ export class NavGrid {
   private readonly visitStamp: Uint32Array;
   private readonly closedStamp: Uint32Array;
   private stamp = 0;
+  /** Binary min-heap of (cell, priority) pairs; the priority is frozen at push time. */
   private readonly heap: number[] = [];
+  private readonly heapKeys: number[] = [];
 
   constructor(arena: Arena, cellSize: number, clearance: number) {
     this.arena = arena;
@@ -117,6 +119,7 @@ export class NavGrid {
     const stamp = this.stamp;
     const heap = this.heap;
     heap.length = 0;
+    this.heapKeys.length = 0;
     const goalC = goal % this.cols;
     const goalR = Math.floor(goal / this.cols);
     const heuristic = (index: number): number => {
@@ -129,16 +132,17 @@ export class NavGrid {
     this.gScore[start] = 0;
     this.fScore[start] = heuristic(start);
     this.cameFrom[start] = -1;
-    this.heapPush(start);
+    this.heapPush(start, this.fScore[start] ?? 0);
 
     let found = false;
     while (heap.length > 0) {
-      const current = this.heapPop();
+      const [current, key] = this.heapPop();
+      // Lazy deletion: skip entries superseded by a cheaper push of the same cell.
+      if (this.closedStamp[current] === stamp || key > (this.fScore[current] ?? Infinity)) continue;
       if (current === goal) {
         found = true;
         break;
       }
-      if (this.closedStamp[current] === stamp) continue;
       this.closedStamp[current] = stamp;
       const cc = current % this.cols;
       const cr = Math.floor(current / this.cols);
@@ -155,8 +159,10 @@ export class NavGrid {
           this.visitStamp[neighbor] = stamp;
           this.cameFrom[neighbor] = current;
           this.gScore[neighbor] = tentative;
-          this.fScore[neighbor] = tentative + heuristic(neighbor);
-          this.heapPush(neighbor);
+          // Keys are stored with the same float32 precision as fScore so stale-entry checks are exact.
+          const f = Math.fround(tentative + heuristic(neighbor));
+          this.fScore[neighbor] = f;
+          this.heapPush(neighbor, f);
         }
       }
     }
@@ -195,46 +201,52 @@ export class NavGrid {
     return result;
   }
 
-  private heapPush(index: number): void {
+  private heapPush(index: number, key: number): void {
     const heap = this.heap;
+    const keys = this.heapKeys;
+    let i = heap.length;
     heap.push(index);
-    let i = heap.length - 1;
-    const f = this.fScore;
+    keys.push(key);
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      const pi = heap[parent] as number;
-      if ((f[pi] as number) <= (f[index] as number)) break;
-      heap[i] = pi;
+      const parentKey = keys[parent] as number;
+      if (parentKey <= key) break;
+      heap[i] = heap[parent] as number;
+      keys[i] = parentKey;
       i = parent;
     }
     heap[i] = index;
+    keys[i] = key;
   }
 
-  private heapPop(): number {
+  private heapPop(): [number, number] {
     const heap = this.heap;
-    const top = heap[0] as number;
-    const last = heap.pop() as number;
-    if (heap.length > 0) {
-      const f = this.fScore;
+    const keys = this.heapKeys;
+    const top: [number, number] = [heap[0] as number, keys[0] as number];
+    const lastIndex = heap.pop() as number;
+    const lastKey = keys.pop() as number;
+    const length = heap.length;
+    if (length > 0) {
       let i = 0;
-      const length = heap.length;
       for (;;) {
         const left = i * 2 + 1;
         const right = left + 1;
         let smallest = i;
-        let smallestF = f[last] as number;
-        if (left < length && (f[heap[left] as number] as number) < smallestF) {
+        let smallestKey = lastKey;
+        if (left < length && (keys[left] as number) < smallestKey) {
           smallest = left;
-          smallestF = f[heap[left] as number] as number;
+          smallestKey = keys[left] as number;
         }
-        if (right < length && (f[heap[right] as number] as number) < smallestF) {
+        if (right < length && (keys[right] as number) < smallestKey) {
           smallest = right;
         }
         if (smallest === i) break;
         heap[i] = heap[smallest] as number;
+        keys[i] = keys[smallest] as number;
         i = smallest;
       }
-      heap[i] = last;
+      heap[i] = lastIndex;
+      keys[i] = lastKey;
     }
     return top;
   }

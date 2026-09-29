@@ -1,10 +1,11 @@
 import { advance, advanceBy, expect, setupApp, startMatch, state, test } from './fixtures';
 
+/** Island collision boxes (src/game/sim/arena.ts, 8u inset). */
 const ISLANDS = [
-  { left: 144, right: 624, top: 144, bottom: 496 },
-  { left: 1424, right: 1776, top: 144, bottom: 368 },
-  { left: 1168, right: 1648, top: 784, bottom: 1008 },
-  { left: 272, right: 496, top: 784, bottom: 1008 },
+  { left: 136, right: 632, top: 136, bottom: 504 },
+  { left: 1416, right: 1784, top: 136, bottom: 376 },
+  { left: 1160, right: 1656, top: 776, bottom: 1016 },
+  { left: 264, right: 504, top: 776, bottom: 1016 },
 ];
 
 function insideIsland(x: number, y: number): boolean {

@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { setMockGuard } from './api/http';
 import { createQueryClient } from './api/queryClient';
 import { App } from './app/App';
+import { ErrorBoundary } from './app/ErrorBoundary';
 import { normalizeInitialRoute } from './app/router';
 import { sounds } from './game/audio/soundManager';
 import { ensureMockClient, startMocking } from './mocks/browser';
@@ -23,9 +24,11 @@ async function bootstrap(): Promise<void> {
   const queryClient = createQueryClient();
   createRoot(rootElement).render(
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

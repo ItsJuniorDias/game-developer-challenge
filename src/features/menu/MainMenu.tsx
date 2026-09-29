@@ -1,6 +1,8 @@
+import { useId, useState } from 'react';
 import shipUrl from '../../../assets/png/default/ships/ship_2.png?url';
 import { navigate } from '../../app/router';
 import { ControlsGuide } from '../../ui/ControlsGuide';
+import { Dialog } from '../../ui/Dialog';
 import { GameButton } from '../../ui/GameButton';
 import { Panel } from '../../ui/Panel';
 import { Screen } from '../../ui/Screen';
@@ -10,6 +12,8 @@ import { PendingBanner } from './PendingBanner';
 
 export function MainMenu() {
   const title = uiSprite('menu', 'title_pirate_battle');
+  const [howToOpen, setHowToOpen] = useState(false);
+  const howToTitle = useId();
   return (
     <Screen title="Main menu" footer={<NetworkLabButton />}>
       <div className="menu-layout">
@@ -36,12 +40,27 @@ export function MainMenu() {
               Match History
             </GameButton>
           </nav>
+          {/* Short screens (landscape phones) hide the side panel: the same guide opens in a dialog. */}
+          <GameButton variant="secondary" size="small" className="menu-howto" data-testid="menu-howto" onClick={() => setHowToOpen(true)}>
+            How to Play
+          </GameButton>
           <PendingBanner />
         </Panel>
         <Panel className="controls-panel" aria-label="How to play">
           <ControlsGuide headingId="menu-controls" />
         </Panel>
       </div>
+      <Dialog open={howToOpen} onCancel={() => setHowToOpen(false)} labelledBy={howToTitle} testId="howto-dialog">
+        <h2 id={howToTitle} className="dialog__title">
+          How to Play
+        </h2>
+        <ControlsGuide headingId={`${howToTitle}-controls`} compact />
+        <div className="dialog__actions">
+          <GameButton size="small" sound="back" onClick={() => setHowToOpen(false)}>
+            Close
+          </GameButton>
+        </div>
+      </Dialog>
     </Screen>
   );
 }

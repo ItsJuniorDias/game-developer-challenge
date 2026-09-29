@@ -17,6 +17,15 @@ function range(min: number, max: number, step: number): number[] {
 const SESSION_CHOICES = range(OPTION_LIMITS.sessionTimeSeconds.min, OPTION_LIMITS.sessionTimeSeconds.max, 10);
 const SPAWN_CHOICES = range(OPTION_LIMITS.spawnIntervalSeconds.min, OPTION_LIMITS.spawnIntervalSeconds.max, 0.5);
 
+function isValidSessionTime(value: number): boolean {
+  return Number.isInteger(value) && value >= OPTION_LIMITS.sessionTimeSeconds.min && value <= OPTION_LIMITS.sessionTimeSeconds.max;
+}
+
+/** Common presets plus any other valid value in use (e.g. a 95 s option), so every ranking stays reachable. */
+function withValues(base: readonly number[], ...extra: number[]): number[] {
+  return [...new Set([...base, ...extra])].sort((a, b) => a - b);
+}
+
 export function RankingPanel() {
   const options = useOptions();
   const profile = useProfile();
@@ -26,28 +35,52 @@ export function RankingPanel() {
     spawnIntervalSeconds: options.spawnIntervalSeconds,
   });
   const [page, setPage] = useState(1);
+  const [sessionDraft, setSessionDraft] = useState(String(options.sessionTimeSeconds));
+  const sessionDraftValid = isValidSessionTime(Number(sessionDraft));
   const query = useRankingQuery(config, page);
   const data = query.data;
-  const totalPages = data?.totalPages ?? 1;
+  // Remember the page count so a failed page can still be left through pagination.
+  const [knownPages, setKnownPages] = useState(1);
+  if (data && data.totalPages !== knownPages) setKnownPages(data.totalPages);
+  const totalPages = data?.totalPages ?? knownPages;
+  const sessionChoices = withValues(SESSION_CHOICES, options.sessionTimeSeconds, config.sessionTimeSeconds);
+  const spawnChoices = withValues(SPAWN_CHOICES, options.spawnIntervalSeconds, config.spawnIntervalSeconds);
   const updateConfig = (patch: Partial<MatchConfigDto>): void => {
     setConfig((c) => ({ ...c, ...patch }));
     setPage(1);
+    setKnownPages(1);
   };
 
   return (
     <div className="log-panel">
       <div className="log-filters">
         <label htmlFor={`${id}-session`}>Battle length</label>
-        <select id={`${id}-session`} value={config.sessionTimeSeconds} onChange={(e) => updateConfig({ sessionTimeSeconds: Number(e.target.value) })}>
-          {SESSION_CHOICES.map((v) => (
-            <option key={v} value={v}>
-              {v} s
-            </option>
+        {/* Any valid session time (60-180 s) can be typed; common values are suggested. */}
+        <input
+          id={`${id}-session`}
+          className="log-filters__number"
+          type="number"
+          inputMode="numeric"
+          min={OPTION_LIMITS.sessionTimeSeconds.min}
+          max={OPTION_LIMITS.sessionTimeSeconds.max}
+          step={1}
+          list={`${id}-session-presets`}
+          value={sessionDraft}
+          aria-invalid={sessionDraftValid ? undefined : true}
+          onChange={(e) => {
+            setSessionDraft(e.target.value);
+            const value = Number(e.target.value);
+            if (isValidSessionTime(value)) updateConfig({ sessionTimeSeconds: value });
+          }}
+        />
+        <datalist id={`${id}-session-presets`}>
+          {sessionChoices.map((v) => (
+            <option key={v} value={v} />
           ))}
-        </select>
+        </datalist>
         <label htmlFor={`${id}-spawn`}>Spawn interval</label>
         <select id={`${id}-spawn`} value={config.spawnIntervalSeconds} onChange={(e) => updateConfig({ spawnIntervalSeconds: Number(e.target.value) })}>
-          {SPAWN_CHOICES.map((v) => (
+          {spawnChoices.map((v) => (
             <option key={v} value={v}>
               {formatSpawn(v)} s
             </option>
@@ -56,6 +89,7 @@ export function RankingPanel() {
       </div>
       <p className="log-subtitle" data-testid="ranking-config">
         {config.sessionTimeSeconds} second battles · {formatSpawn(config.spawnIntervalSeconds)} second spawn interval
+        {sessionDraftValid ? null : <span className="field-error"> · Battle length must be 60–180 whole seconds</span>}
       </p>
       <RefreshStatus fetching={query.isFetching && !query.isPending} error={data ? query.error : null} onRetry={() => void query.refetch()} />
       {query.isPending ? (
@@ -98,7 +132,7 @@ export function RankingPanel() {
           </tbody>
         </table>
       ) : null}
-      {data ? <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} label="Ranking" busy={query.isFetching} /> : null}
+      {data || page > 1 ? <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} label="Ranking" busy={query.isFetching} /> : null}
     </div>
   );
 }

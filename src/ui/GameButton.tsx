@@ -8,15 +8,25 @@ interface GameButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly size?: 'large' | 'medium' | 'small';
   readonly children: ReactNode;
   readonly sound?: 'click' | 'back' | 'none';
+  /**
+   * Looks and announces as disabled but stays focusable (aria-disabled), for
+   * buttons that become unavailable right after being used (e.g. Save).
+   */
+  readonly unavailable?: boolean;
 }
 
 /** Wooden plaque button using the menu sprites (9-slice via border-image). */
-export function GameButton({ variant = 'primary', size = 'large', sound = 'click', className, onClick, children, type = 'button', ...rest }: GameButtonProps) {
+export function GameButton({ variant = 'primary', size = 'large', sound = 'click', unavailable = false, className, onClick, children, type = 'button', ...rest }: GameButtonProps) {
   return (
     <button
       type={type}
       className={['game-button', `game-button--${variant}`, `game-button--${size}`, className].filter(Boolean).join(' ')}
+      aria-disabled={unavailable || undefined}
       onClick={(event) => {
+        if (unavailable) {
+          event.preventDefault();
+          return;
+        }
         if (sound !== 'none') {
           sounds.unlock();
           sounds.play(sound === 'back' ? 'ui_back' : 'ui_click', { volume: 0.5 });

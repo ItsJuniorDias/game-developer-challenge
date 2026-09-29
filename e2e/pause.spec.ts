@@ -12,7 +12,10 @@ test.describe('Pause', () => {
     await page.keyboard.press('KeyP');
     await expect(page.getByTestId('pause-dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Paused' })).toBeVisible();
-    await expect(page.getByTestId('pause-resume')).toBeFocused();
+    // Focus goes to the dialog heading, so a key still held from combat cannot trigger Resume.
+    await expect(page.getByRole('heading', { name: 'Paused' })).toBeFocused();
+    await page.keyboard.press('Space');
+    await expect(page.getByTestId('pause-dialog')).toBeVisible();
     await advanceBy(page, 5000, 1000);
     const paused = await state(page);
     expect(paused.phase).toBe('paused');
@@ -62,6 +65,46 @@ test.describe('Pause', () => {
     expect((await state(page)).phase).toBe('paused');
     await page.getByTestId('pause-resume').click();
     expect((await state(page)).phase).toBe('running');
+  });
+
+  test('holding P does not resume right after pausing', async ({ page }) => {
+    await setupApp(page, { firstSpawnDelaySeconds: 999 });
+    await startMatch(page);
+    await page.keyboard.down('KeyP');
+    await expect(page.getByTestId('pause-dialog')).toBeVisible();
+    // Auto-repeat keydown events while the key stays down.
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyP', key: 'p', repeat: true, bubbles: true })));
+    }
+    await page.keyboard.up('KeyP');
+    await expect(page.getByTestId('pause-dialog')).toBeVisible();
+    expect((await state(page)).phase).toBe('paused');
+    // A fresh press resumes.
+    await page.keyboard.press('KeyP');
+    await expect(page.getByTestId('pause-dialog')).toBeHidden();
+  });
+
+  test('losing focus while assets load starts the match paused', async ({ page }) => {
+    await setupApp(page, { firstSpawnDelaySeconds: 999, assetDelayMs: 1200 });
+    await page.goto('/');
+    await page.getByTestId('menu-play').click();
+    // Blur while the game assets are downloading (the session exists and is loading).
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __pirate?: { hud(): { phase: string } | null } }).__pirate?.hud()?.phase)).toBe('loading');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(page.getByTestId('pause-dialog')).toBeVisible({ timeout: 20_000 });
+    expect((await state(page)).phase).toBe('paused');
+    expect((await state(page)).time).toBe(0);
+  });
+
+  test('losing focus while the combat screen downloads also starts the match paused', async ({ page }) => {
+    // The mock network holds the combat screen chunk, so the blur happens before the session exists.
+    await setupApp(page, { firstSpawnDelaySeconds: 999, assetDelayMs: 1500, assetDelayPattern: 'GameScreen-' });
+    await page.goto('/');
+    await page.getByTestId('menu-play').click();
+    await expect(page.getByTestId('game-route-loading')).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await expect(page.getByTestId('pause-dialog')).toBeVisible({ timeout: 20_000 });
+    expect((await state(page)).phase).toBe('paused');
   });
 
   test('real-time clock does not advance while paused', async ({ page }) => {

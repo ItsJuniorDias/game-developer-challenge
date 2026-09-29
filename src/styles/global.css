@@ -241,14 +241,14 @@ kbd {
   color: var(--brown);
 }
 
-.game-button--primary:hover:not(:disabled) {
+.game-button--primary:hover:not(:disabled):not([aria-disabled='true']) {
   border-image-source: image-set(
     url('../../assets/png/default/ui/menu/button_primary_hover.png') 1x,
     url('../../assets/png/retina/ui/menu/button_primary_hover.png') 2x
   );
 }
 
-.game-button--primary:active:not(:disabled) {
+.game-button--primary:active:not(:disabled):not([aria-disabled='true']) {
   border-image-source: image-set(
     url('../../assets/png/default/ui/menu/button_primary_pressed.png') 1x,
     url('../../assets/png/retina/ui/menu/button_primary_pressed.png') 2x
@@ -256,7 +256,8 @@ kbd {
   transform: translateY(1px);
 }
 
-.game-button--primary:disabled {
+.game-button--primary:disabled,
+.game-button--primary[aria-disabled='true'] {
   border-image-source: image-set(
     url('../../assets/png/default/ui/menu/button_primary_disabled.png') 1x,
     url('../../assets/png/retina/ui/menu/button_primary_disabled.png') 2x
@@ -338,21 +339,22 @@ kbd {
   touch-action: manipulation;
 }
 
-.round-button:hover:not(:disabled) {
+.round-button:hover:not(:disabled):not([aria-disabled='true']) {
   background-image: image-set(
     url('../../assets/png/default/ui/controls/button_round_hover.png') 1x,
     url('../../assets/png/retina/ui/controls/button_round_hover.png') 2x
   );
 }
 
-.round-button:active:not(:disabled) {
+.round-button:active:not(:disabled):not([aria-disabled='true']) {
   background-image: image-set(
     url('../../assets/png/default/ui/controls/button_round_pressed.png') 1x,
     url('../../assets/png/retina/ui/controls/button_round_pressed.png') 2x
   );
 }
 
-.round-button:disabled {
+.round-button:disabled,
+.round-button[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -422,6 +424,10 @@ kbd {
 
 .controls-panel {
   width: min(100%, 380px);
+}
+
+.menu-howto {
+  display: none;
 }
 
 .controls-guide {
@@ -753,8 +759,21 @@ kbd {
   font-size: 0.85rem;
 }
 
-.log-filters select {
+.log-filters select,
+.log-filters__number {
   padding: 4px 8px;
+}
+
+.log-filters__number {
+  width: 76px;
+  background: rgba(8, 15, 26, 0.75);
+  border: 2px solid rgba(247, 233, 201, 0.35);
+  border-radius: 10px;
+  color: var(--cream);
+}
+
+.log-filters__number[aria-invalid='true'] {
+  border-color: var(--danger);
 }
 
 .log-table {
@@ -1076,8 +1095,9 @@ kbd {
 }
 
 .health-bar {
+  --bar-width: clamp(170px, 22vw, 256px);
   position: relative;
-  width: clamp(170px, 22vw, 256px);
+  width: var(--bar-width);
   aspect-ratio: 256 / 48;
 }
 
@@ -1098,7 +1118,8 @@ kbd {
 }
 
 .health-bar__fill {
-  width: clamp(170px, 22vw, 256px);
+  /* Same width as the frame so the clipped fill always lines up with it. */
+  width: var(--bar-width);
   max-width: none;
 }
 
@@ -1112,6 +1133,9 @@ kbd {
   font-size: 0.85rem;
   font-weight: 800;
   color: #fff;
+  /* A full dark outline keeps the number readable on green, amber and red fills. */
+  -webkit-text-stroke: 3px #10161f;
+  paint-order: stroke fill;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
@@ -1444,6 +1468,10 @@ kbd {
     display: none;
   }
 
+  .menu-howto {
+    display: inline-flex;
+  }
+
   .panel-title {
     font-size: 1.4rem;
   }
@@ -1474,7 +1502,7 @@ kbd {
   }
 
   .hud .health-bar {
-    width: 150px;
+    --bar-width: 150px;
   }
 
   .hud .counter {
@@ -1497,6 +1525,13 @@ kbd {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Infinite animations are removed, not sped up (a 0.01 ms loop would flicker). */
+  .spinner,
+  .counter--warning .counter__value {
+    animation: none !important;
   }
 }

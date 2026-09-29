@@ -8,7 +8,7 @@ A top-down 2D naval shooter built with **React 19**, **TypeScript (strict)** and
 | --- | --- | --- |
 | ![Menu](docs/screenshots/menu.jpg) | ![Ranking](docs/screenshots/captains-log.jpg) | ![Mobile](docs/screenshots/mobile.jpg) |
 
-> Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md). The original challenge brief (in Portuguese) is kept in [docs/CHALLENGE.md](docs/CHALLENGE.md).
+> Play it at **https://game-developer-challenge.vercel.app**. Design decisions are explained in [ARCHITECTURE.md](ARCHITECTURE.md), profiling results in [docs/PERFORMANCE.md](docs/PERFORMANCE.md). The original challenge brief (in Portuguese) is kept in [docs/CHALLENGE.md](docs/CHALLENGE.md).
 
 ## Contents
 
@@ -17,6 +17,7 @@ A top-down 2D naval shooter built with **React 19**, **TypeScript (strict)** and
 - [Commands](#commands)
 - [Environment variables](#environment-variables)
 - [Controls](#controls)
+- [Screens](#screens)
 - [Match rules](#match-rules)
 - [Gameplay configuration](#gameplay-configuration)
 - [Ranking and match history](#ranking-and-match-history)
@@ -108,8 +109,21 @@ All of them are optional. See [.env.example](.env.example).
 - Moving and firing work at the same time (several keys or several fingers).
 - Holding a fire button shoots whenever that weapon's cooldown allows it.
 - The joystick replaces the movement buttons automatically on touch-first devices (`pointer: coarse`); desktop keeps the buttons.
+- On short screens (landscape phones) the main menu shows a **How to Play** button that opens the same controls guide.
 - Game keys are only captured while a match is running and no dialog is open.
 - The controls are shown on the main menu, in the pause dialog and as key hints on the desktop buttons.
+
+## Screens
+
+| Screen | Route | Content |
+| --- | --- | --- |
+| Main menu | `#/` | **Play**, **Options**, the control instructions (side panel, or **How to Play** on short screens), and the **Ranking** / **Match History** tabs of the Captain's Log |
+| Options | `#/options` | Game session time, enemy spawn time, captain name, sound; validated, saved, persisted |
+| Battle | `#/play` | PixiJS arena, HUD, touch controls, pause dialog (with Options and Controls) |
+| Result | `#/result` | Total score, time played, end reason, record status, **Play Again**, **Main Menu** (survives a refresh) |
+| Captain's Log | `#/log/ranking`, `#/log/history` | Ranking and Match History tabs with pagination |
+
+As in the reference art (`assets/sample_menu.png` and `assets/sample_ranking.png`), the Ranking and Match History entries on the main menu open the Captain's Log board directly on that tab. Inside the board they are real WAI-ARIA tabs, and each tab has its own URL.
 
 ## Match rules
 
@@ -124,7 +138,7 @@ All of them are optional. See [.env.example](.env.example).
 
 ## Gameplay configuration
 
-Every parameter lives in one typed configuration: [`src/game/config/gameConfig.ts`](src/game/config/gameConfig.ts). Systems only read a **frozen snapshot** created when each match starts, so option changes apply to the next match.
+Every gameplay and balancing parameter lives in one typed configuration: [`src/game/config/gameConfig.ts`](src/game/config/gameConfig.ts). That covers durations, spawns, health, speeds, acceleration, turn rates, weapons, AI tuning and collision tuning, so balancing never touches system code. Systems only read a **frozen snapshot** created when each match starts, so option changes apply to the next match.
 
 **Player options** (Options screen, persisted in `localStorage`):
 
@@ -144,17 +158,17 @@ Every parameter lives in one typed configuration: [`src/game/config/gameConfig.t
 | Turn rate (rad/s) | 2.5 | 2.0 | 1.7 |
 | Attack | Bow: 20 damage, 720 u/s, range 720, 0.45 s cooldown. Broadside: 3 × 20 damage, 620 u/s, range 460, 1.2 s cooldown per side | Ram: 15 damage | Cannon: 8 damage, 520 u/s, range 620, 2.2 s cooldown. Opens fire at 560 u, holds at 380 u |
 
-Spawns: first enemy at 1.5 s, 55% Chaser / 45% Shooter, at most 10 enemies alive, and a 1 s grace period (no attacks) after spawning. The simulation runs in fixed 1/60 s steps and catches up at most 0.25 s per frame.
+Spawns: first enemy at 1.5 s, 55% Chaser / 45% Shooter, at most 10 enemies alive, and a 1 s grace period (no attacks) after spawning. Enemies accelerate at 225 (Chaser) and 187.5 (Shooter) u/s², and the Shooter leads its aim by 70% of the player's motion during the cannonball's flight. AI timings (re-planning every 0.5 s, avoidance lookahead), cannonball radius and push shares are in the same file. The simulation runs in fixed 1/60 s steps and catches up at most 0.25 s per frame.
 
 **Balancing decisions.** The numbers were tuned with `npm run balance`, which plays 12 matches per configuration with a simple bot (aims at the closest enemy, never dodges). Current results:
 
 | Configuration | Average score | Matches survived |
 | --- | --- | --- |
-| 120 s / 3 s (default) | 24.2 | 1/12 (the others end between 54 s and 107 s) |
-| 180 s / 1 s (hardest) | 11.6 | 0/12 |
-| 60 s / 10 s (easiest) | 5.4 | 12/12 |
+| 120 s / 3 s (default) | 28.3 | 2/12 (the others end between 46 s and 117 s) |
+| 180 s / 1 s (hardest) | 11.8 | 0/12 (18–31 s) |
+| 60 s / 10 s (easiest) | 5.8 | 12/12 |
 
-The default should be tough for a passive player but beatable by someone who uses broadsides and keeps moving. In the first version the bot sank after about 50 s. The Chaser's ram damage was lowered from 25 to 15 and its speed from 165 to 150. The Shooter now fires every 2.2 s (was 1.8 s) for 8 damage (was 10). The cap on living enemies went from 14 to 10.
+The default should be tough for a passive player but beatable by someone who uses broadsides and keeps moving. In the first version the bot sank after about 50 s. The Chaser's ram damage was lowered from 25 to 15 and its speed from 165 to 150. The Shooter now fires every 2.2 s (was 1.8 s) for 8 damage (was 10). The cap on living enemies went from 14 to 10. The later hull-shaped collisions and the Shooter's lead aiming while closing in barely moved these numbers.
 
 ## Ranking and match history
 
@@ -171,7 +185,7 @@ Typed contracts live in [`src/api/contracts.ts`](src/api/contracts.ts) and are s
 - **Idempotency:** the client generates `matchId` and also sends it as `Idempotency-Key`. Re-sending the same record returns `200` with the stored record (`created: false`), never a duplicate. The same `matchId` with different data returns `409`.
 - **Pending records:** when a match ends, it is saved to `localStorage` (result + outbox) **before** any request. A worker built on `useMutation` drains the outbox and retries transient errors (timeout, network, 5xx, 408/429) with backoff. It tries again when the connection comes back, when the network scenario changes and every 15 s, and every stored record (even a rejected one) is re-sent when the app is opened again. Only answers that mean the record itself is invalid (`400`, `409`, `413`, `422`) are marked "rejected" until the player presses **Retry**. Anything else, including a `404`, is treated as transient. The player can start another match while records are pending.
 - **Mock availability:** MSW keeps the list of mocked pages in the Service Worker's memory, and browsers stop idle workers (for example while the tab sits in the background). Before every request the client re-sends `MOCK_ACTIVATE` to the worker and waits for its confirmation. Every mocked response carries an `x-pirate-mock` header. A response without it reached the hosting server instead of the mock (on Vercel that is a `404` for `/api/*`), so it is reported as a transient network error and never rejects a record.
-- **Cache and refresh:** queries use `placeholderData` to paginate without flicker and `refetchOnMount: 'always'` to refresh when a tab is shown again. Both tabs are invalidated after every confirmed record.
+- **Cache and refresh:** while the next page of the same list loads, the previous page stays on screen (`placeholderData`, only for the same configuration or player, so switching the ranking configuration shows a loading state instead of old rows). `refetchOnMount: 'always'` refreshes a tab when it is shown again, and both tabs are invalidated after every confirmed record. If a page fails to load, pagination stays available to leave it.
 - **Late responses:** every page and configuration has its own cache key, and superseded requests are aborted with an `AbortSignal`. Every response also carries a monotonic `revision`, and a response older than the cached one is discarded.
 - **Failures never block the game:** the API only affects the Ranking and Match History tabs and the record status on the result screen.
 
@@ -184,7 +198,7 @@ The handlers live in [`src/mocks/handlers.ts`](src/mocks/handlers.ts) and are th
 1. In the main menu footer, click **Network lab** and pick a scenario. The choice is saved in `localStorage`.
 2. Open the app with `?scenario=<id>`, for example `http://localhost:5173/?scenario=offline`.
 
-**Restoring the initial state:** Network lab → **Reset to initial state**. This switches back to `normal`, recreates the fixtures, clears the pending outbox and the last result, and empties the TanStack Query cache.
+**Restoring the initial state:** Network lab → **Reset to initial state**. This switches back to `normal`, recreates the fixtures, clears the pending outbox and the last result, and empties the TanStack Query cache. A registration still in flight during the reset is refused by the mock server, so it cannot bring an old record back.
 
 | `id` | Name | Behavior |
 | --- | --- | --- |
@@ -254,14 +268,16 @@ Randomness (latency and generated fixtures) comes from a seeded PRNG. In tests, 
 
 - `seed` pins spawns and AI;
 - `manualClock` makes the simulation advance only through `window.__pirate.advance(ms)`, independently of machine speed;
-- `firstSpawnDelaySeconds` and `playerSpawn` pick the scenario;
+- `firstSpawnDelaySeconds` and `playerSpawn` pick the scenario, and `assetFailure` / `assetDelayMs` simulate asset network failures and slow downloads (through MSW);
 - `mockLatencyMs`, `mockSeed`, `apiTimeoutMs` and `apiRetryDelayMs` control the network.
 
 This instrumentation only **observes state and drives the clock**. Combat tests press real keys (`page.keyboard`) and real touches (CDP `Input.dispatchTouchEvent`), while rules, collisions and rendering run unchanged.
 
 The same debug API is available by hand with `?debug=1`. In the console: `__pirate.state()`, `__pirate.hud()`, `__pirate.perf()` and `__pirate.setClockMode('manual')`.
 
-**Reports.** The HTML report is written to `reports/playwright` (`npm run test:e2e:report`). Traces, videos and screenshots of failures go to `test-results/` (`npx playwright show-trace <file>`). Visual baselines are versioned in `e2e/visual.spec.ts-snapshots/`.
+**Console hygiene.** Every test fails if the page logs an unexpected `console.error` or throws. Only the browser's own "Failed to load resource" messages are allowed, since those come from requests that fail on purpose in the network scenarios.
+
+**Reports.** The HTML report of the last full run (both projects, all green) is committed in `reports/playwright`; `npm run test:e2e:report` opens it. Failure artefacts are kept only for failing tests (`trace: 'retain-on-failure'`, plus video and screenshot), so an all-green report contains no traces. When a test fails, its trace, video and screenshot are written to `test-results/<test>/` and linked from the HTML report; open a trace with `npx playwright show-trace test-results/<test>/trace.zip`. The Linux CI workflow uploads `reports/playwright` and `test-results` as an artifact on every run. Traces, videos and screenshots of failures go to `test-results/` (`npx playwright show-trace <file>`). Visual baselines are versioned in `e2e/visual.spec.ts-snapshots/`.
 
 ## Project structure
 
@@ -302,15 +318,18 @@ assets/                    # Assets provided by the challenge (used directly by 
 | `pirate-battle:mock-db:v1` | Mock API database (confirmed records) |
 | `pirate-battle:mock-scenario:v1` | Selected network scenario |
 
-Corrupted or outdated values are ignored and replaced by defaults.
+Every value is validated deeply when read: corrupted or outdated values are ignored and replaced by defaults, and a corrupted record inside the mock database or the outbox is dropped on its own without breaking the rest. With the app open in several browser tabs, writes re-read storage first and other tabs' changes are picked up through the `storage` event, so tabs never erase each other's records.
 
 ## Accessibility and responsiveness
 
-- Every menu works with the keyboard alone, with a visible (gold) focus ring. Focus moves to each screen's heading on navigation.
+- Every menu works with the keyboard alone, with a visible (gold) focus ring. Focus moves to each screen's heading on navigation, including the battle screen.
+- Buttons that become unavailable right after use (−/+ at a limit, Save after saving, first/last page) use `aria-disabled`, so keyboard focus is never lost.
+- The pause dialog focuses its heading (a key still held from combat cannot trigger Resume), and switching between its menu, Options and Controls moves focus to the new heading.
 - Dialogs (pause and Network lab) use the native `<dialog>` with `showModal()`: focus is trapped inside, `Esc` closes, and focus returns to the opener.
 - The Captain's Log tabs follow the WAI-ARIA tabs pattern (`←`/`→`/`Home`/`End`).
 - Fields have labels. Errors use `aria-invalid`, `aria-describedby` and `role="alert"`.
-- The HUD is semantic (health as `role="meter"`, score and time as text). An `aria-live` region announces milestones only: start, pause, 30 s and 10 s left, critical hull, end, and score (at most every 2.5 s).
+- The HUD is semantic (health as `role="meter"`, score and time as text). The arena is laid out below the HUD band, so the HUD never covers a ship; a health bar that would leave the arena is drawn below its ship instead.
+- The HUD's health number has a dark outline so it stays readable on green, amber and red fills. An `aria-live` region announces milestones only: start, pause, 30 s and 10 s left, critical hull, end, and score (at most every 2.5 s).
 - Text has high contrast (cream on navy, brown on gold) and animations respect `prefers-reduced-motion`.
 - **Mobile:** the game is played in **landscape**. In portrait, on a touch device, the match pauses and asks the player to rotate. The sea fills the whole screen, while the playable arena keeps its fixed 16:9 size. World coordinates never depend on the screen size, so the rules are identical at any resolution. Movement uses the joystick, and the three cannon buttons sit on the right. The canvas follows the pixel density (up to 2×) and the safe areas (`env(safe-area-inset-*)`).
 
@@ -318,7 +337,7 @@ Corrupted or outdated values are ignored and replaced by defaults.
 
 The build is static (`dist/`) and MSW runs in the browser, so any static host works. On Vercel: framework **Vite**, build command `npm run build`, output directory `dist`. Routes use the hash (`#/...`), so no rewrites are needed. The Service Worker (`/mockServiceWorker.js`) requires HTTPS or `localhost`.
 
-Public URL: _to be published_.
+Public URL: **https://game-developer-challenge.vercel.app** (Vercel, deployed from `main`).
 
 ## Credits and licenses
 
@@ -330,11 +349,10 @@ Public URL: _to be published_.
 
 ## Known limitations
 
-- The visual baselines were generated on macOS (`*-darwin.png`). On Linux or in CI, generate them for that platform with `npm run test:e2e:update`.
+- Visual baselines are committed for macOS (`*-darwin.png`). On another platform the three screenshot comparisons are skipped with an explanation instead of failing. To create Linux baselines, run the manual **E2E (Linux)** GitHub Actions workflow ([`.github/workflows/e2e-linux.yml`](.github/workflows/e2e-linux.yml)) once with `update_snapshots` enabled: it runs the whole suite in the official Playwright image and commits the `*-linux.png` files. Locally, `npm run test:e2e:update` does the same for the current platform.
 - In headless Chromium, WebGL runs on the CPU (SwiftShader). That is why the suite uses at most 3 workers and gameplay tests use the manual clock.
 - The ranking lists matches, not each player's best result, so the same captain can appear more than once.
 - When a Shooter is destroyed, its cannonballs still in flight sink, so a destroyed enemy can never deal damage afterwards.
-- The HUD sits over the top edge of the arena, as in the visual reference, and can partly cover a ship hugging the top.
 - On screens wider (or taller) than 16:9 the sea continues past the playable arena with no visible border: the ship stops at the arena limit there.
 - The mock API database lives in each browser's `localStorage`: there is no ranking shared across devices.
 - Audio on phones starts on the first touch, as browsers require. On iOS 17 and later the game asks for the "playback" audio session, so the ring/silent switch does not mute it. On iOS 16 and earlier, Safari still mutes web audio while the switch is on silent.

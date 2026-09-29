@@ -19,3 +19,6 @@ dist/
 test-results/
 playwright/.cache/
 blob-report/
+
+# Default Playwright report folder (the configured one is reports/playwright)
+playwright-report/

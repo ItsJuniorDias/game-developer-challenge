@@ -14,6 +14,7 @@ export interface TestConfig {
   mockSeed?: number;
   assetFailure?: string | null;
   assetDelayMs?: number | null;
+  assetDelayPattern?: string | null;
 }
 
 export interface SeedStorage {
@@ -56,7 +57,9 @@ export async function setupApp(page: Page, config: TestConfig = {}, storage: See
       sessionStorage.setItem('__e2e_seeded', '1');
       localStorage.setItem(keys.profile, JSON.stringify(profile));
       if (storage.scenario) localStorage.setItem(keys.scenario, JSON.stringify(storage.scenario));
-      if (storage.options) localStorage.setItem(keys.options, JSON.stringify({ soundEnabled: false, ...storage.options }));
+      // Sound is off unless a test enables it: creating an AudioContext is slow in headless Chromium.
+      const options = storage.options ?? { sessionTimeSeconds: 120, spawnIntervalSeconds: 3 };
+      localStorage.setItem(keys.options, JSON.stringify({ soundEnabled: false, ...options }));
       for (const [key, value] of Object.entries(storage.extra ?? {})) localStorage.setItem(key, JSON.stringify(value));
     },
     { merged, storage, keys: STORAGE, profile: PROFILE },
@@ -155,7 +158,17 @@ export async function turnTo(page: Page, heading: number, tolerance = 0.06): Pro
   throw new Error('Could not turn to the requested heading');
 }
 
-/** Collects console errors and uncaught exceptions for the whole test. */
+/**
+ * Browser-generated network logs for requests that fail on purpose (network
+ * scenarios such as "offline" or "HTTP 500"). They are not application errors.
+ */
+const EXPECTED_CONSOLE_NOISE = [/Failed to load resource/i, /net::ERR_/i];
+
+/**
+ * Collects console errors and uncaught exceptions for the whole test and fails
+ * the test at teardown if the app logged anything unexpected. Tests can read
+ * `consoleErrors` to assert earlier, or clear it when they provoke an error.
+ */
 export const test = base.extend<{ consoleErrors: string[] }>({
   consoleErrors: [
     async ({ page }, use) => {
@@ -165,6 +178,8 @@ export const test = base.extend<{ consoleErrors: string[] }>({
       });
       page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
       await use(errors);
+      const unexpected = errors.filter((text) => !EXPECTED_CONSOLE_NOISE.some((pattern) => pattern.test(text)));
+      expect(unexpected, 'unexpected console errors').toEqual([]);
     },
     { auto: true },
   ],

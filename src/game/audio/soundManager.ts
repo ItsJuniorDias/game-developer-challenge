@@ -73,6 +73,8 @@ class SoundManager {
   private master: GainNode | null = null;
   private readonly buffers = new Map<SoundName, Promise<AudioBuffer | null>>();
   private readonly loops = new Map<SoundName, Loop>();
+  /** Loops that should be playing; a loop whose buffer arrives late only starts if still wanted. */
+  private readonly wantedLoops = new Set<SoundName>();
   private readonly lastPlayed = new Map<SoundName, number>();
   private enabled = true;
   private primed = false;
@@ -99,6 +101,8 @@ class SoundManager {
    * app goes to the background or the screen locks.
    */
   unlock(): void {
+    // Sound off: never create an AudioContext (creating one can block the main thread for a moment).
+    if (!this.enabled) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
     preferPlaybackSession();
@@ -126,7 +130,7 @@ class SoundManager {
     if (this.autoUnlockInstalled || typeof document === 'undefined') return;
     this.autoUnlockInstalled = true;
     const retry = (): void => {
-      if (!this.context || this.context.state !== 'running') this.unlock();
+      if (this.enabled && (!this.context || this.context.state !== 'running')) this.unlock();
     };
     for (const type of ['pointerup', 'touchend', 'click', 'keydown', 'mousedown']) {
       document.addEventListener(type, retry, { capture: true, passive: true });
@@ -134,6 +138,7 @@ class SoundManager {
   }
 
   preload(names: readonly SoundName[]): void {
+    if (!this.enabled) return;
     for (const name of names) void this.buffer(name);
   }
 
@@ -162,8 +167,9 @@ class SoundManager {
     if (!this.enabled || this.loops.has(name)) return;
     const ctx = this.ensureContext();
     if (!ctx || !this.master) return;
+    this.wantedLoops.add(name);
     void this.buffer(name).then((buffer) => {
-      if (!buffer || !this.master || !this.enabled || this.loops.has(name)) return;
+      if (!buffer || !this.master || !this.enabled || this.loops.has(name) || !this.wantedLoops.has(name)) return;
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.loop = true;
@@ -181,6 +187,7 @@ class SoundManager {
   }
 
   stopLoop(name: SoundName): void {
+    this.wantedLoops.delete(name);
     const loop = this.loops.get(name);
     if (!loop) return;
     this.loops.delete(name);
@@ -194,6 +201,7 @@ class SoundManager {
   }
 
   stopAllLoops(): void {
+    this.wantedLoops.clear();
     for (const name of [...this.loops.keys()]) this.stopLoop(name);
   }
 

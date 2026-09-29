@@ -33,6 +33,8 @@ const TILE_INSET = 1;
 if (loadTextures.config) loadTextures.config.preferWorkers = false;
 
 let cache: Promise<GameTextures> | null = null;
+let cacheProgress = 0;
+const progressListeners = new Set<(progress: number) => void>();
 
 /** Parses the Starling/Sparrow XML atlas shipped with the ship sprites. */
 export function parseStarlingAtlas(xml: string, imageName: string): SpritesheetData {
@@ -164,18 +166,34 @@ async function loadAll(onProgress: (progress: number) => void, retina: boolean):
 
 /**
  * Loads (once) every texture required by a match. Concurrent callers share the
- * same promise; a failure clears the cache so a retry downloads again.
+ * same download and all receive its real progress (a session that joins a
+ * load started by a disposed one, e.g. under React Strict Mode, still shows
+ * accurate progress). A failure clears the cache so a retry downloads again.
  */
 export function loadGameTextures(onProgress: (progress: number) => void = () => {}, options: { retina?: boolean } = {}): Promise<GameTextures> {
-  if (cache) {
-    onProgress(1);
-    return cache;
+  if (!cache) {
+    const retina = options.retina ?? (typeof window !== 'undefined' && window.devicePixelRatio >= 1.5);
+    cacheProgress = 0;
+    const pending = loadAll((progress) => {
+      cacheProgress = progress;
+      for (const listener of progressListeners) listener(progress);
+    }, retina);
+    cache = pending;
+    pending.then(
+      () => {
+        cacheProgress = 1;
+      },
+      () => {
+        if (cache === pending) cache = null;
+      },
+    );
   }
-  const retina = options.retina ?? (typeof window !== 'undefined' && window.devicePixelRatio >= 1.5);
-  const pending = loadAll(onProgress, retina);
-  cache = pending;
-  pending.catch(() => {
-    if (cache === pending) cache = null;
-  });
-  return pending;
+  const shared = cache;
+  progressListeners.add(onProgress);
+  onProgress(cacheProgress);
+  const detach = (): void => {
+    progressListeners.delete(onProgress);
+  };
+  shared.then(detach, detach);
+  return shared;
 }

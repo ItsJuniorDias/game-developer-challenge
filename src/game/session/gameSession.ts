@@ -6,6 +6,7 @@ import { randomSeed } from '../core/rng';
 import { InputState } from '../input/inputState';
 import { KeyboardController } from '../input/keyboardController';
 import { GameRenderer } from '../render/gameRenderer';
+import { NO_INSETS, type ViewportInsets } from '../render/viewport';
 import { DEFAULT_LAYOUT, type ArenaLayout } from '../sim/arena';
 import { Simulation, type SimSnapshot } from '../sim/simulation';
 import type { SimEvent } from '../sim/types';
@@ -13,6 +14,7 @@ import { FixedStepClock } from './clock';
 import { FrameStats } from './frameStats';
 import { HudStore, type HudState, type PauseReason, type SessionPhase } from './hudStore';
 import { createId, type MatchResult } from './matchResult';
+import { focusTracker } from './focusTracker';
 import type { TestConfig } from './testConfig';
 
 export interface GameSessionOptions {
@@ -54,6 +56,8 @@ export class GameSession {
   private listenersAttached = false;
   private loadToken = 0;
   private pendingCosmetic = 0;
+  private insets: ViewportInsets = NO_INSETS;
+  private pendingAutoPause: PauseReason | null = null;
 
   constructor(options: GameSessionOptions) {
     const test = options.test ?? null;
@@ -105,6 +109,10 @@ export class GameSession {
   async start(): Promise<void> {
     if (this.phase === 'disposed') return;
     const token = ++this.loadToken;
+    // A focus loss while the combat screen itself was downloading counts too.
+    this.pendingAutoPause = focusTracker.consume();
+    // Listen for focus loss from the start: a blur while loading must still pause the match.
+    this.attachListeners();
     this.setPhase('loading', { loadProgress: 0, loadError: null });
     let textures: GameTextures;
     try {
@@ -114,6 +122,7 @@ export class GameSession {
     } catch (error) {
       if (token !== this.loadToken || this.isDisposed()) return;
       const message = error instanceof Error ? error.message : 'Unknown error';
+      this.pendingAutoPause = null;
       this.setPhase('error', { loadError: message });
       return;
     }
@@ -123,11 +132,13 @@ export class GameSession {
     this.renderer = renderer;
     try {
       await renderer.init();
+      renderer.setInsets(this.insets);
     } catch (error) {
       renderer.destroy();
       this.renderer = null;
       if (this.isDisposed()) return;
       const message = error instanceof Error ? error.message : 'Renderer failed to start';
+      this.pendingAutoPause = null;
       this.setPhase('error', { loadError: message });
       return;
     }
@@ -137,9 +148,10 @@ export class GameSession {
     }
 
     sounds.preload(COMBAT_SOUNDS);
-    this.attachListeners();
     this.startedAt = new Date().toISOString();
     this.ticker = renderer.app.ticker;
+    // Let the fixed-step clock (not Pixi's 100 ms default cap) decide how much time a hitch may recover.
+    this.ticker.minFPS = 1 / this.config.maxFrameCatchUpSeconds;
     this.ticker.add(this.onTick);
     // A manual clock (tests) draws on demand: no animation frames at all.
     if (this.clock.mode === 'realtime') this.ticker.start();
@@ -150,6 +162,10 @@ export class GameSession {
     sounds.startLoop('ocean_ambience_loop', 0.35);
     sounds.startLoop('ship_sailing_loop', 0);
     renderer.render(this.sim.world, 1, 0);
+    // The window lost focus (or the tab was hidden) while loading: start paused.
+    const pending = this.pendingAutoPause;
+    this.pendingAutoPause = null;
+    if (pending) this.pause(pending);
   }
 
   retry(): Promise<void> {
@@ -232,6 +248,12 @@ export class GameSession {
     this.frameStats.reset();
   }
 
+  /** Reserves screen space around the arena (CSS pixels), e.g. the HUD band at the top. */
+  setViewportInsets(insets: ViewportInsets): void {
+    this.insets = { ...insets };
+    this.renderer?.setInsets(this.insets);
+  }
+
   get viewport(): GameRenderer['viewport'] | null {
     return this.renderer?.viewport ?? null;
   }
@@ -254,16 +276,17 @@ export class GameSession {
   private readonly onTick = (ticker: Ticker): void => {
     const renderer = this.renderer;
     if (!renderer) return;
-    const frameSeconds = ticker.deltaMS / 1000;
+    const frameSeconds = ticker.elapsedMS / 1000;
     // Manual clock (tests): frames are only drawn by advance(), keeping the page responsive.
     if (this.clock.mode === 'manual') return;
     const world = this.sim.world;
-    this.frameStats.record(ticker.deltaMS, 1 + world.enemies.length + world.projectiles.length);
+    this.frameStats.record(ticker.elapsedMS, 1 + world.enemies.length + world.projectiles.length);
     if (this.phase === 'running') {
       this.runSteps(this.clock.consume(frameSeconds));
     }
     const cosmeticDt = this.phase === 'paused' ? 0 : Math.min(frameSeconds, this.config.maxFrameCatchUpSeconds);
-    renderer.render(world, this.phase === 'running' ? this.clock.alpha : 1, cosmeticDt);
+    // Pixi's ticker hook presents the frame right after this callback.
+    renderer.render(world, this.phase === 'running' ? this.clock.alpha : 1, cosmeticDt, false);
   };
 
   private runSteps(steps: number): void {
@@ -393,12 +416,22 @@ export class GameSession {
     window.removeEventListener('pagehide', this.onWindowBlur);
   }
 
+  /**
+   * Pauses now, or remembers the request if the match has not started yet: a
+   * match whose window lost focus (or tab was hidden) while loading starts
+   * paused, and the player resumes it explicitly.
+   */
+  private requestAutoPause(reason: PauseReason): void {
+    if (this.phase === 'loading') this.pendingAutoPause = reason;
+    else this.pause(reason);
+  }
+
   private readonly onWindowBlur = (): void => {
-    this.pause('focus_lost');
+    this.requestAutoPause('focus_lost');
   };
 
   private readonly onVisibilityChange = (): void => {
-    if (document.visibilityState === 'hidden') this.pause('hidden');
+    if (document.visibilityState === 'hidden') this.requestAutoPause('hidden');
   };
 }
 

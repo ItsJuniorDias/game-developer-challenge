@@ -26,6 +26,8 @@ export interface TestConfig {
   assetFailure?: string | null;
   /** Mock network: extra latency (ms) applied to game asset downloads. */
   assetDelayMs?: number | null;
+  /** Mock network: regex source limiting assetDelayMs to matching URLs (e.g. the combat screen chunk). */
+  assetDelayPattern?: string | null;
 }
 
 declare global {

@@ -11,7 +11,10 @@ export function HistoryPanel() {
   const [page, setPage] = useState(1);
   const query = useHistoryQuery(profile.playerId, page);
   const data = query.data;
-  const totalPages = data?.totalPages ?? 1;
+  // Remember the page count so a failed page can still be left through pagination.
+  const [knownPages, setKnownPages] = useState(1);
+  if (data && data.totalPages !== knownPages) setKnownPages(data.totalPages);
+  const totalPages = data?.totalPages ?? knownPages;
 
   return (
     <div className="log-panel">
@@ -55,7 +58,7 @@ export function HistoryPanel() {
           </tbody>
         </table>
       ) : null}
-      {data ? <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} label="Match history" busy={query.isFetching} /> : null}
+      {data || page > 1 ? <Pagination page={Math.min(page, totalPages)} totalPages={totalPages} onChange={setPage} label="Match history" busy={query.isFetching} /> : null}
     </div>
   );
 }

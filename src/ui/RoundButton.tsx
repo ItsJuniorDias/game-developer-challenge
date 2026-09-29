@@ -7,12 +7,22 @@ interface RoundButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>,
   /** Accessible name (required: the button only shows an icon). */
   readonly label: string;
   readonly size?: number;
+  /** Disabled for users but still focusable (aria-disabled), so keyboard focus is never lost. */
+  readonly unavailable?: boolean;
 }
 
-export function RoundButton({ icon, label, size = 48, className, type = 'button', style, ...rest }: RoundButtonProps) {
+export function RoundButton({ icon, label, size = 48, unavailable = false, className, type = 'button', style, onClick, ...rest }: RoundButtonProps) {
   return (
     <button
       type={type}
+      aria-disabled={unavailable || undefined}
+      onClick={(event) => {
+        if (unavailable) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
       aria-label={label}
       title={label}
       className={['round-button', className].filter(Boolean).join(' ')}

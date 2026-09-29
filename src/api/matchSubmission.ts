@@ -67,7 +67,12 @@ export function useMatchSubmissionWorker(): void {
   const pending = usePendingMatches();
   const { mutate } = useMutation<SubmitMatchResponse, unknown, MatchRecordInput>({
     mutationKey: submitMutationKey,
-    mutationFn: submitMatch,
+    // Every attempt (including TanStack retries) checks the outbox first: a record
+    // removed meanwhile (e.g. Network lab reset) must not be sent again.
+    mutationFn: (input) => {
+      if (!pendingMatches.get(input.matchId)) return Promise.reject(new ApiError('canceled', 'The record is no longer pending.'));
+      return submitMatch(input);
+    },
     onMutate: (input) => {
       pendingMatches.markAttempt(input.matchId);
     },

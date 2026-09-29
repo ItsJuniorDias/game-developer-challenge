@@ -1,25 +1,19 @@
 import type { SimContext } from '../context';
 import type { Projectile, Ship, WorldState } from '../types';
+import { hullOf } from './collisionSystem';
 import { applyDamage } from './damage';
 
-export const PROJECTILE_RADIUS = 5;
-
 /** Point-vs-oriented-ellipse test matching the visible hull shape. */
-export function hitsHull(ship: Ship, hullHalfLength: number, hullHalfWidth: number, px: number, py: number): boolean {
+export function hitsHull(ship: Ship, hullHalfLength: number, hullHalfWidth: number, px: number, py: number, projectileRadius: number): boolean {
   const dx = px - ship.x;
   const dy = py - ship.y;
   const cos = Math.cos(ship.rotation);
   const sin = Math.sin(ship.rotation);
   const along = dx * cos + dy * sin;
   const across = -dx * sin + dy * cos;
-  const a = hullHalfLength + PROJECTILE_RADIUS;
-  const b = hullHalfWidth + PROJECTILE_RADIUS;
+  const a = hullHalfLength + projectileRadius;
+  const b = hullHalfWidth + projectileRadius;
   return (along * along) / (a * a) + (across * across) / (b * b) <= 1;
-}
-
-function hullOf(ctx: SimContext, ship: Ship): { halfLength: number; halfWidth: number } {
-  const hull = ship.kind === 'player' ? ctx.config.player : ship.kind === 'chaser' ? ctx.config.chaser : ctx.config.shooter;
-  return { halfLength: hull.hitHalfLength, halfWidth: hull.hitHalfWidth };
 }
 
 function end(ctx: SimContext, p: Projectile, cause: 'expired' | 'island' | 'bounds' | 'hit'): void {
@@ -29,7 +23,10 @@ function end(ctx: SimContext, p: Projectile, cause: 'expired' | 'island' | 'boun
 
 export function updateProjectiles(world: WorldState, ctx: SimContext, dt: number): void {
   const arena = ctx.arena;
+  const radius = ctx.config.collision.projectileRadius;
   for (const p of world.projectiles) {
+    // Once the player sinks the match is over: nothing else may hit or score this step.
+    if (!world.player.alive) break;
     if (!p.alive) continue;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -48,7 +45,7 @@ export function updateProjectiles(world: WorldState, ctx: SimContext, dt: number
       for (const enemy of world.enemies) {
         if (!enemy.alive) continue;
         const hull = hullOf(ctx, enemy);
-        if (hitsHull(enemy, hull.halfLength, hull.halfWidth, p.x, p.y)) {
+        if (hitsHull(enemy, hull.hitHalfLength, hull.hitHalfWidth, p.x, p.y, radius)) {
           end(ctx, p, 'hit');
           applyDamage(world, ctx, enemy, p.damage, 'player_fire');
           break;
@@ -57,7 +54,7 @@ export function updateProjectiles(world: WorldState, ctx: SimContext, dt: number
     } else {
       const player = world.player;
       const hull = hullOf(ctx, player);
-      if (player.alive && hitsHull(player, hull.halfLength, hull.halfWidth, p.x, p.y)) {
+      if (player.alive && hitsHull(player, hull.hitHalfLength, hull.hitHalfWidth, p.x, p.y, radius)) {
         end(ctx, p, 'hit');
         applyDamage(world, ctx, player, p.damage, 'enemy_fire');
       }

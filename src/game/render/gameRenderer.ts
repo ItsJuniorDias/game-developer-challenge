@@ -7,7 +7,7 @@ import { ArenaView } from './arenaView';
 import { EffectsLayer } from './effectsLayer';
 import { ProjectileLayer } from './projectileView';
 import { ShipView } from './shipView';
-import { fitWorld, type ViewportFit } from './viewport';
+import { fitWorld, NO_INSETS, type ViewportFit, type ViewportInsets } from './viewport';
 
 const MAX_RESOLUTION = 2;
 const WAKE_INTERVAL = 0.07;
@@ -39,6 +39,10 @@ export class GameRenderer {
   private readonly seenShips = new Set<number>();
   private readonly shakeRng = new Rng(7);
   private resizeObserver: ResizeObserver | null = null;
+  private dprQuery: MediaQueryList | null = null;
+  private insets: ViewportInsets = NO_INSETS;
+  private shakeX = 0;
+  private shakeY = 0;
   private fit: ViewportFit = { scale: 1, offsetX: 0, offsetY: 0, screenWidth: 1, screenHeight: 1 };
   private wakeClock = 0;
   private shakeTime = 0;
@@ -93,6 +97,7 @@ export class GameRenderer {
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.host);
+    this.watchPixelRatio();
     this.resize();
   }
 
@@ -149,10 +154,12 @@ export class GameRenderer {
   }
 
   /**
-   * Draws the world. `alpha` interpolates between the last two simulation
-   * steps; `dt` advances cosmetic animation (0 while paused).
+   * Updates the scene from the simulation. `alpha` interpolates between the
+   * last two simulation steps; `dt` advances cosmetic animation (0 while
+   * paused). `present` draws immediately: the realtime ticker leaves it off
+   * because Pixi's own ticker hook presents the frame right after.
    */
-  render(world: WorldState, alpha: number, dt: number): void {
+  render(world: WorldState, alpha: number, dt: number, present = true): void {
     if (!this.isReady) return;
     this.syncShips(world, alpha, dt);
     this.projectiles?.sync(world.projectiles, alpha);
@@ -162,7 +169,16 @@ export class GameRenderer {
       this.spawnWakes(world, dt);
     }
     this.applyShake(dt);
-    this.app.render();
+    if (present) this.app.render();
+  }
+
+  /** Screen space reserved around the arena (e.g. the HUD band), in CSS pixels. */
+  setInsets(insets: ViewportInsets): void {
+    const same =
+      insets.top === this.insets.top && insets.right === this.insets.right && insets.bottom === this.insets.bottom && insets.left === this.insets.left;
+    if (same) return;
+    this.insets = { ...insets };
+    this.resize();
   }
 
   private syncShips(world: WorldState, alpha: number, dt: number): void {
@@ -201,16 +217,34 @@ export class GameRenderer {
   }
 
   private applyShake(dt: number): void {
-    let ox = 0;
-    let oy = 0;
-    if (this.shakeTime > 0) {
-      this.shakeTime = Math.max(0, this.shakeTime - dt);
-      const strength = (this.shakeTime / SHAKE_SECONDS) * 6;
-      ox = this.shakeRng.range(-strength, strength);
-      oy = this.shakeRng.range(-strength, strength);
+    // Shake only evolves while cosmetic time runs: a paused frame keeps its offset.
+    if (dt > 0) {
+      if (this.shakeTime > 0) {
+        this.shakeTime = Math.max(0, this.shakeTime - dt);
+        const strength = (this.shakeTime / SHAKE_SECONDS) * 6;
+        this.shakeX = this.shakeRng.range(-strength, strength);
+        this.shakeY = this.shakeRng.range(-strength, strength);
+      } else {
+        this.shakeX = 0;
+        this.shakeY = 0;
+      }
     }
-    this.world.position.set(this.fit.offsetX + ox * this.fit.scale, this.fit.offsetY + oy * this.fit.scale);
+    this.world.position.set(this.fit.offsetX + this.shakeX * this.fit.scale, this.fit.offsetY + this.shakeY * this.fit.scale);
   }
+
+  /** Re-applies the resolution when the device pixel ratio changes without a CSS resize (e.g. moving to another display). */
+  private watchPixelRatio(): void {
+    this.dprQuery?.removeEventListener('change', this.onPixelRatioChange);
+    if (typeof window.matchMedia !== 'function') return;
+    this.dprQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+    this.dprQuery.addEventListener('change', this.onPixelRatioChange);
+  }
+
+  private readonly onPixelRatioChange = (): void => {
+    if (this.destroyed) return;
+    this.watchPixelRatio();
+    this.resize();
+  };
 
   private hostSize(): { width: number; height: number } {
     const rect = this.host.getBoundingClientRect();
@@ -228,7 +262,7 @@ export class GameRenderer {
     const resolution = this.resolution();
     if (this.app.renderer.resolution !== resolution) this.app.renderer.resolution = resolution;
     this.app.renderer.resize(width, height);
-    this.fit = fitWorld(this.layout.width, this.layout.height, width, height);
+    this.fit = fitWorld(this.layout.width, this.layout.height, width, height, this.insets);
     this.world.scale.set(this.fit.scale);
     this.world.position.set(this.fit.offsetX, this.fit.offsetY);
     // The sea covers the whole screen; a margin hides the edges during screen shake.
@@ -247,6 +281,8 @@ export class GameRenderer {
     this.destroyed = true;
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.dprQuery?.removeEventListener('change', this.onPixelRatioChange);
+    this.dprQuery = null;
     if (!this.initialized) return;
     for (const view of this.ships.values()) view.destroy();
     this.ships.clear();
