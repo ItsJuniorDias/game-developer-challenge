@@ -1,9 +1,24 @@
-import { useRef, type PointerEvent } from 'react';
+import { useRef, useSyncExternalStore, type PointerEvent } from 'react';
 import { KEY_HINTS, ACTION_LABELS, type GameAction } from '../../game/input/bindings';
 import type { InputState } from '../../game/input/inputState';
 import type { HudState } from '../../game/session/hudStore';
 import type { IconName } from '../../ui/assets';
 import { Icon } from '../../ui/Icon';
+import { Joystick } from './Joystick';
+
+const COARSE_POINTER = '(pointer: coarse)';
+
+/** True on touch-first devices (phones, tablets): movement uses the joystick there. */
+function useCoarsePointer(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      const query = window.matchMedia(COARSE_POINTER);
+      query.addEventListener('change', listener);
+      return () => query.removeEventListener('change', listener);
+    },
+    () => window.matchMedia(COARSE_POINTER).matches,
+  );
+}
 
 interface PadButtonProps {
   readonly action: GameAction;
@@ -22,7 +37,11 @@ function PadButton({ action, icon, input, disabled, cooling }: PadButtonProps) {
   const down = (event: PointerEvent<HTMLButtonElement>): void => {
     if (disabled) return;
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Synthetic pointers cannot be captured; tracking by id still works.
+    }
     pointers.current.add(event.pointerId);
     input.press(action, `touch:${event.pointerId}`);
     event.currentTarget.dataset.active = 'true';
@@ -56,13 +75,18 @@ function PadButton({ action, icon, input, disabled, cooling }: PadButtonProps) {
 
 export function TouchControls({ input, hud }: { readonly input: InputState; readonly hud: HudState }) {
   const disabled = hud.phase !== 'running';
+  const touchFirst = useCoarsePointer();
   return (
-    <div className="touch-controls" data-testid="touch-controls">
-      <div className="touch-controls__cluster touch-controls__cluster--move" role="group" aria-label="Steering">
-        <PadButton action="turnLeft" icon="turn_left" input={input} disabled={disabled} />
-        <PadButton action="forward" icon="forward" input={input} disabled={disabled} />
-        <PadButton action="turnRight" icon="turn_right" input={input} disabled={disabled} />
-      </div>
+    <div className={['touch-controls', touchFirst ? 'touch-controls--touch' : ''].join(' ')} data-testid="touch-controls">
+      {touchFirst ? (
+        <Joystick input={input} disabled={disabled} />
+      ) : (
+        <div className="touch-controls__cluster touch-controls__cluster--move" role="group" aria-label="Steering">
+          <PadButton action="turnLeft" icon="turn_left" input={input} disabled={disabled} />
+          <PadButton action="forward" icon="forward" input={input} disabled={disabled} />
+          <PadButton action="turnRight" icon="turn_right" input={input} disabled={disabled} />
+        </div>
+      )}
       <div className="touch-controls__cluster touch-controls__cluster--fire" role="group" aria-label="Cannons">
         <PadButton action="fireLeft" icon="fire_left" input={input} disabled={disabled} cooling={!hud.weaponsReady.left} />
         <PadButton action="fireFront" icon="fire_front" input={input} disabled={disabled} cooling={!hud.weaponsReady.front} />

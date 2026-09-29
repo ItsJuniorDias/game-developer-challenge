@@ -7,13 +7,17 @@ export type WeaponSlot = 'front' | 'left' | 'right';
 export type EndReason = 'time_up' | 'defeated';
 export type MatchStatus = 'running' | 'ended';
 
-export interface PlayerIntent {
-  forward: boolean;
-  turnLeft: boolean;
-  turnRight: boolean;
-  fireFront: boolean;
-  fireLeft: boolean;
-  fireRight: boolean;
+/** Digital actions (keys and buttons). */
+export type GameAction = 'forward' | 'turnLeft' | 'turnRight' | 'fireFront' | 'fireLeft' | 'fireRight';
+
+export interface PlayerIntent extends Record<GameAction, boolean> {
+  /**
+   * Analog steering (touch joystick): heading the bow should turn towards, in
+   * world radians, or null. Turn keys take precedence when held.
+   */
+  targetHeading: number | null;
+  /** Analog thrust in [0, 1]; the forward key always means full thrust. */
+  throttle: number;
 }
 
 export const IDLE_INTENT: Readonly<PlayerIntent> = Object.freeze({
@@ -23,6 +27,8 @@ export const IDLE_INTENT: Readonly<PlayerIntent> = Object.freeze({
   fireFront: false,
   fireLeft: false,
   fireRight: false,
+  targetHeading: null,
+  throttle: 0,
 });
 
 export interface AiState {

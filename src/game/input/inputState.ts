@@ -1,5 +1,4 @@
-import { IDLE_INTENT, type PlayerIntent } from '../sim/types';
-import type { GameAction } from './bindings';
+import { IDLE_INTENT, type GameAction, type PlayerIntent } from '../sim/types';
 
 /**
  * Merges every input source (keyboard keys, touch pointers) into a single
@@ -11,6 +10,22 @@ export class InputState {
   private readonly holders = new Map<GameAction, Set<string>>();
   private readonly taps = new Set<GameAction>();
   private readonly intent: PlayerIntent = { ...IDLE_INTENT };
+  private generationValue = 0;
+
+  /**
+   * Increments every time input is cleared (pause, blur, end). A joystick
+   * finger that was already down must be lifted before it steers again, so a
+   * resume never replays movement from before the pause.
+   */
+  get generation(): number {
+    return this.generationValue;
+  }
+
+  /** Analog steering from the touch joystick (heading in world radians, thrust 0..1). */
+  setSteering(heading: number | null, throttle: number): void {
+    this.intent.targetHeading = heading;
+    this.intent.throttle = heading === null ? 0 : Math.max(0, Math.min(1, throttle));
+  }
 
   press(action: GameAction, source: string): void {
     let set = this.holders.get(action);
@@ -54,6 +69,7 @@ export class InputState {
   clear(): void {
     this.holders.clear();
     this.taps.clear();
+    this.generationValue++;
     Object.assign(this.intent, IDLE_INTENT);
   }
 

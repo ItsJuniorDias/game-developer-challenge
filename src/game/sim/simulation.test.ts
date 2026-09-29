@@ -40,6 +40,24 @@ describe('Simulation', () => {
     expect(sim.world.player.rotation).toBeLessThan(heading);
   });
 
+  it('steers towards the joystick heading with proportional thrust', () => {
+    const sim = new Simulation({ config: quietConfig(), seed: 1 });
+    expect(sim.world.player.rotation).toBeCloseTo(-Math.PI / 2, 5);
+    // Stick pushed fully to the right (east): the bow turns clockwise towards 0 rad.
+    run(sim, 0.3, { targetHeading: 0, throttle: 1 });
+    const turning = sim.world.player.rotation;
+    expect(turning).toBeGreaterThan(-Math.PI / 2 + 0.5);
+    run(sim, 2, { targetHeading: 0, throttle: 1 });
+    expect(sim.world.player.rotation).toBeCloseTo(0, 5);
+    expect(sim.world.player.speed).toBeCloseTo(BASE_GAME_CONFIG.player.maxSpeed, 0);
+    // Half deflection: the ship settles at half of its top speed.
+    run(sim, 3, { targetHeading: 0, throttle: 0.5 });
+    expect(sim.world.player.speed).toBeCloseTo(BASE_GAME_CONFIG.player.maxSpeed / 2, 0);
+    // Released stick: the ship glides to a stop.
+    run(sim, 3);
+    expect(sim.world.player.speed).toBe(0);
+  });
+
   it('keeps the player inside the arena and out of islands', () => {
     const sim = new Simulation({ config: quietConfig(), seed: 1 });
     run(sim, 20, { forward: true });

@@ -65,36 +65,58 @@ test.describe('Navigation and abandonment', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('touch controls steer and fire at the same time', async ({ page, isMobile }) => {
-    test.skip(!isMobile, 'multi-touch runs on the mobile project (Chrome DevTools Protocol touch events)');
+  test('touch joystick steers while the cannons fire (multi-touch)', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'touch-first layout runs on the mobile project (Chrome DevTools Protocol touch events)');
     await setupApp(page, { firstSpawnDelaySeconds: 999 });
     await startMatch(page);
+    await expect(page.getByTestId('touch-forward')).toHaveCount(0);
     const client = await page.context().newCDPSession(page);
-    const forward = await center(page, 'touch-forward');
-    const right = await center(page, 'touch-turnRight');
+    const box = await page.getByTestId('touch-joystick').boundingBox();
+    if (!box) throw new Error('joystick not visible');
+    const stick = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const reach = box.width * 0.36;
     const fire = await center(page, 'touch-fireFront');
     const start = await state(page);
+    expect(start.player.rotation).toBeCloseTo(-Math.PI / 2, 3);
 
-    await touch(client, 'touchStart', [{ ...forward, id: 1 }]);
+    // Finger 1 pushes the stick fully up (north, where the bow already points).
+    await touch(client, 'touchStart', [{ ...stick, id: 1 }]);
+    await touch(client, 'touchMove', [{ x: stick.x, y: stick.y - reach, id: 1 }]);
     await advanceBy(page, 800);
+    // Finger 2 fires the bow cannon while finger 1 keeps steering.
     await touch(client, 'touchStart', [
-      { ...forward, id: 1 },
+      { x: stick.x, y: stick.y - reach, id: 1 },
       { ...fire, id: 2 },
     ]);
     await advance(page, 50);
     let s = await state(page);
     expect(s.player.y).toBeLessThan(start.player.y - 30);
+    expect(s.player.speed).toBeGreaterThan(100);
     expect(s.projectiles.filter((p) => p.owner === 'player')).toHaveLength(1);
+    await touch(client, 'touchEnd', [{ x: stick.x, y: stick.y - reach, id: 1 }]);
 
-    await touch(client, 'touchEnd', [{ ...forward, id: 1 }]);
-    await touch(client, 'touchEnd', []);
-    await touch(client, 'touchStart', [{ ...right, id: 3 }]);
-    await advance(page, 400);
-    await touch(client, 'touchEnd', []);
+    // Swing the stick to the right (east): the bow turns clockwise towards 0 rad.
+    await touch(client, 'touchMove', [{ x: stick.x + reach, y: stick.y, id: 1 }]);
+    await advanceBy(page, 400);
     s = await state(page);
     expect(s.player.rotation).toBeGreaterThan(start.player.rotation + 0.5);
-    const afterRelease = s.player.rotation;
-    await advance(page, 400);
-    expect((await state(page)).player.rotation).toBeCloseTo(afterRelease, 5);
+
+    // Releasing the stick stops steering and thrust.
+    await touch(client, 'touchEnd', []);
+    await advance(page, 100);
+    const released = await state(page);
+    await advanceBy(page, 400);
+    s = await state(page);
+    expect(s.player.rotation).toBeCloseTo(released.player.rotation, 5);
+    expect(s.player.speed).toBeLessThan(released.player.speed);
+  });
+
+  test('desktop keeps the movement buttons', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'fine-pointer layout');
+    await setupApp(page, { firstSpawnDelaySeconds: 999 });
+    await startMatch(page);
+    await expect(page.getByTestId('touch-joystick')).toHaveCount(0);
+    await expect(page.getByTestId('touch-forward')).toBeVisible();
+    await expect(page.getByTestId('touch-fireFront')).toBeVisible();
   });
 });

@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, TilingSprite, type Texture } from 'pixi.js';
+import { Container, Sprite, TilingSprite, type Texture } from 'pixi.js';
 import type { GameTextures } from '../assets/gameTextures';
 import { TILE_SIZE, type ArenaLayout, type IslandDef } from '../sim/arena';
 
@@ -43,19 +43,15 @@ function pickTile(set: TileSet, col: number, row: number, cols: number, rows: nu
   return cycle(set.c[(row - 1) % set.c.length] ?? [], col - 1);
 }
 
-/** Darkening applied to the sea outside the playable arena. */
-const OUT_OF_BOUNDS_ALPHA = 0.18;
-
 /**
  * Static arena scenery (water, shallows, islands, rocks, plants). Built once
  * per match from the shared layout; only the water layer animates. The sea
- * extends to the edges of the screen (letterbox included), slightly dimmed
- * outside the playable area, so wide screens never show empty bars.
+ * extends seamlessly to the edges of the screen (letterbox included), so wide
+ * screens never show bars; the playable bounds stay the fixed 16:9 arena.
  */
 export class ArenaView {
   readonly view = new Container({ label: 'arena' });
   private readonly water: TilingSprite;
-  private readonly outOfBounds = new Graphics();
   private readonly layout: ArenaLayout;
   private time = 0;
 
@@ -64,7 +60,7 @@ export class ArenaView {
     this.water = new TilingSprite({ texture: textures.water, width: layout.width, height: layout.height });
     this.water.tileScale.set(1);
     this.water.tint = 0x9fcbe8;
-    this.view.addChild(this.water, this.outOfBounds);
+    this.view.addChild(this.water);
 
     const tile = (id: number): Texture | undefined => textures.tiles.textures[`tile_${id}`];
     const place = (id: number, x: number, y: number, parent: Container): void => {
@@ -117,17 +113,10 @@ export class ArenaView {
       props.addChild(sprite);
     }
 
-    const border = new Graphics()
-      .rect(0, 0, layout.width, layout.height)
-      .stroke({ width: 4, color: 0x0b2f4a, alpha: 0.45, alignment: 1 });
-
-    this.view.addChild(shallows, islands, props, border);
+    this.view.addChild(shallows, islands, props);
   }
 
-  /**
-   * Stretches the sea over the part of the world that is visible on screen
-   * (world units, may extend beyond the arena) and dims what is out of bounds.
-   */
+  /** Stretches the sea over the part of the world visible on screen (world units, may exceed the arena). */
   setVisibleRect(x: number, y: number, width: number, height: number): void {
     const { width: aw, height: ah } = this.layout;
     const left = Math.min(0, x);
@@ -138,13 +127,6 @@ export class ArenaView {
     this.water.width = right - left;
     this.water.height = bottom - top;
     this.syncWaterPattern();
-
-    const g = this.outOfBounds.clear();
-    const dim = { color: 0x031526, alpha: OUT_OF_BOUNDS_ALPHA };
-    if (top < 0) g.rect(left, top, right - left, -top).fill(dim);
-    if (bottom > ah) g.rect(left, ah, right - left, bottom - ah).fill(dim);
-    if (left < 0) g.rect(left, 0, -left, ah).fill(dim);
-    if (right > aw) g.rect(aw, 0, right - aw, ah).fill(dim);
   }
 
   update(dt: number): void {

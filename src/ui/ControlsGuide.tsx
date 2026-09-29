@@ -23,7 +23,10 @@ export function ControlsGuide({ headingId, compact = false }: { readonly heading
           </dd>
         </div>
       </dl>
-      <p className="controls-guide__touch">On touch screens, use the on-screen buttons. Movement and cannons work at the same time.</p>
+      <p className="controls-guide__touch">
+        On touch screens, drag the joystick (bottom left) towards where you want to sail and use the cannon buttons (bottom right). Steering and firing work at the
+        same time.
+      </p>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { wrapAngle } from '../../core/math';
+import { angleDelta, clamp, rotateTowards, wrapAngle } from '../../core/math';
 import type { SimContext } from '../context';
 import type { PlayerIntent, WorldState } from '../types';
 import { fireBroadside, fireFront } from './weapons';
@@ -9,12 +9,23 @@ export function updatePlayer(world: WorldState, ctx: SimContext, intent: PlayerI
   const cfg = ctx.config.player;
 
   const turn = (intent.turnRight ? 1 : 0) - (intent.turnLeft ? 1 : 0);
-  player.rotation = wrapAngle(player.rotation + turn * cfg.turnSpeed * dt);
+  let throttle = intent.forward ? 1 : clamp(intent.throttle, 0, 1);
+  if (turn !== 0) {
+    player.rotation = wrapAngle(player.rotation + turn * cfg.turnSpeed * dt);
+  } else if (intent.targetHeading !== null) {
+    // Joystick: the ship still only sails forward and turns; the stick picks the side and the thrust.
+    player.rotation = rotateTowards(player.rotation, intent.targetHeading, cfg.turnSpeed * dt);
+    if (!intent.forward) {
+      const alignment = Math.max(0, Math.cos(angleDelta(player.rotation, intent.targetHeading)));
+      throttle *= cfg.steeringMinThrottle + (1 - cfg.steeringMinThrottle) * alignment;
+    }
+  }
 
-  if (intent.forward) {
-    player.speed = Math.min(cfg.maxSpeed, player.speed + cfg.acceleration * dt);
+  const targetSpeed = cfg.maxSpeed * throttle;
+  if (player.speed < targetSpeed) {
+    player.speed = Math.min(targetSpeed, player.speed + cfg.acceleration * dt);
   } else {
-    player.speed = Math.max(0, player.speed - cfg.deceleration * dt);
+    player.speed = Math.max(targetSpeed, player.speed - cfg.deceleration * dt);
   }
   player.x += Math.cos(player.rotation) * player.speed * dt;
   player.y += Math.sin(player.rotation) * player.speed * dt;

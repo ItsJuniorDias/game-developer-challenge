@@ -96,20 +96,20 @@ All of them are optional. See [.env.example](.env.example).
 
 ## Controls
 
-| Action | Keyboard | Touch |
-| --- | --- | --- |
-| Sail forward | `W` / `↑` | ⬆ button (bottom left) |
-| Turn left | `A` / `←` | ↰ button |
-| Turn right | `D` / `→` | ↱ button |
-| Bow cannon (1 cannonball) | `Space` / `K` | middle button (bottom right) |
-| Port broadside (3 cannonballs, left) | `Q` / `J` | ⋮◂ button |
-| Starboard broadside (3 cannonballs, right) | `E` / `L` | ▸⋮ button |
-| Pause / resume | `P` / `Esc` | pause button in the HUD |
+| Action | Keyboard | Touch devices (phones, tablets) | Mouse / desktop pad |
+| --- | --- | --- | --- |
+| Steer | `A`/`←` and `D`/`→` turn, `W`/`↑` sails forward | **Joystick** (bottom left): drag towards where you want to sail | ↰ ⬆ ↱ buttons (bottom left) |
+| Bow cannon (1 cannonball) | `Space` / `K` | middle cannon button (bottom right) | same |
+| Port broadside (3 cannonballs, left) | `Q` / `J` | ⋮◂ button | same |
+| Starboard broadside (3 cannonballs, right) | `E` / `L` | ▸⋮ button | same |
+| Pause / resume | `P` / `Esc` | pause button in the HUD | same |
 
+- **Joystick.** The ship turns towards the stick direction at its normal turn rate and sails with thrust proportional to the deflection. A small dead zone ignores accidental touches. The ship still only sails forward and turns, so the rules are the same as with the keyboard. When the stick points behind the ship, thrust drops while the bow comes round, so it turns tightly instead of drawing a wide arc.
 - Moving and firing work at the same time (several keys or several fingers).
 - Holding a fire button shoots whenever that weapon's cooldown allows it.
+- The joystick replaces the movement buttons automatically on touch-first devices (`pointer: coarse`); desktop keeps the buttons.
 - Game keys are only captured while a match is running and no dialog is open.
-- The controls are shown on the main menu, in the pause dialog and as key hints on the touch buttons.
+- The controls are shown on the main menu, in the pause dialog and as key hints on the desktop buttons.
 
 ## Match rules
 
@@ -169,7 +169,8 @@ Typed contracts live in [`src/api/contracts.ts`](src/api/contracts.ts) and are s
 - **Record fields:** `matchId`, `playerId`, `playerName`, `playedAt`, `score`, `durationMs` (effective play time), `endReason` (`time_up` \| `defeated`) and `config` (session time and spawn interval).
 - **Deterministic tie-break:** higher score → longer effective duration (survived longer) → played earlier → `matchId`.
 - **Idempotency:** the client generates `matchId` and also sends it as `Idempotency-Key`. Re-sending the same record returns `200` with the stored record (`created: false`), never a duplicate. The same `matchId` with different data returns `409`.
-- **Pending records:** when a match ends, it is saved to `localStorage` (result + outbox) **before** any request. A worker built on `useMutation` drains the outbox and retries transient errors (timeout, network, 5xx, 408/429) with backoff. It tries again on page load, when the connection comes back, when the network scenario changes and every 15 s. 4xx errors are marked "rejected" until the player presses **Retry**. The player can start another match while records are pending.
+- **Pending records:** when a match ends, it is saved to `localStorage` (result + outbox) **before** any request. A worker built on `useMutation` drains the outbox and retries transient errors (timeout, network, 5xx, 408/429) with backoff. It tries again when the connection comes back, when the network scenario changes and every 15 s, and every stored record (even a rejected one) is re-sent when the app is opened again. Only answers that mean the record itself is invalid (`400`, `409`, `413`, `422`) are marked "rejected" until the player presses **Retry**. Anything else, including a `404`, is treated as transient. The player can start another match while records are pending.
+- **Mock availability:** MSW keeps the list of mocked pages in the Service Worker's memory, and browsers stop idle workers (for example while the tab sits in the background). Before every request the client re-sends `MOCK_ACTIVATE` to the worker and waits for its confirmation. Every mocked response carries an `x-pirate-mock` header. A response without it reached the hosting server instead of the mock (on Vercel that is a `404` for `/api/*`), so it is reported as a transient network error and never rejects a record.
 - **Cache and refresh:** queries use `placeholderData` to paginate without flicker and `refetchOnMount: 'always'` to refresh when a tab is shown again. Both tabs are invalidated after every confirmed record.
 - **Late responses:** every page and configuration has its own cache key, and superseded requests are aborted with an `AbortSignal`. Every response also carries a monotonic `revision`, and a response older than the cached one is discarded.
 - **Failures never block the game:** the API only affects the Ranking and Match History tabs and the record status on the result screen.
@@ -244,7 +245,7 @@ Randomness (latency and generated fixtures) comes from a seeded PRNG. In tests, 
 | 6. Time-up and defeat, frozen simulation and clean restart | `e2e/match.spec.ts` |
 | 7. Pause, focus loss and resume | `e2e/pause.spec.ts` |
 | 8. Result screen and persistence after refresh | `e2e/result.spec.ts` |
-| 9. Abandoning, repeated navigation and touch controls | `e2e/navigation.spec.ts` |
+| 9. Abandoning, repeated navigation, touch joystick + cannons (multi-touch) and desktop pad | `e2e/navigation.spec.ts` |
 | 10. Ranking and Match History: loading, empty, error and pagination | `e2e/captains-log.spec.ts` |
 | 11 and 12. Registration, pending records after refresh, timeout without duplicates, late responses | `e2e/submission.spec.ts` |
 | Visual regression (menu, stable arena, result) | `e2e/visual.spec.ts` |
@@ -311,7 +312,7 @@ Corrupted or outdated values are ignored and replaced by defaults.
 - Fields have labels. Errors use `aria-invalid`, `aria-describedby` and `role="alert"`.
 - The HUD is semantic (health as `role="meter"`, score and time as text). An `aria-live` region announces milestones only: start, pause, 30 s and 10 s left, critical hull, end, and score (at most every 2.5 s).
 - Text has high contrast (cream on navy, brown on gold) and animations respect `prefers-reduced-motion`.
-- **Mobile:** the game is played in **landscape**. In portrait, on a touch device, the match pauses and asks the player to rotate. The arena keeps its 16:9 ratio (with side bars when needed), and world coordinates never depend on the screen size, so rules are identical at any resolution. The canvas follows the pixel density (up to 2×) and the safe areas (`env(safe-area-inset-*)`).
+- **Mobile:** the game is played in **landscape**. In portrait, on a touch device, the match pauses and asks the player to rotate. The sea fills the whole screen, while the playable arena keeps its fixed 16:9 size. World coordinates never depend on the screen size, so the rules are identical at any resolution. Movement uses the joystick, and the three cannon buttons sit on the right. The canvas follows the pixel density (up to 2×) and the safe areas (`env(safe-area-inset-*)`).
 
 ## Deployment
 
@@ -334,4 +335,5 @@ Public URL: _to be published_.
 - The ranking lists matches, not each player's best result, so the same captain can appear more than once.
 - When a Shooter is destroyed, its cannonballs still in flight sink, so a destroyed enemy can never deal damage afterwards.
 - The HUD sits over the top edge of the arena, as in the visual reference, and can partly cover a ship hugging the top.
+- On screens wider (or taller) than 16:9 the sea continues past the playable arena with no visible border: the ship stops at the arena limit there.
 - The mock API database lives in each browser's `localStorage`: there is no ranking shared across devices.

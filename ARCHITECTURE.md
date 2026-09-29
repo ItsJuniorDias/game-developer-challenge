@@ -11,7 +11,7 @@ This document explains how Pirate Battle is put together and why. For setup, com
 │        │ useSyncExternalStore     │ creates/destroys                  │ TanStack Query      │
 │        ▼                          ▼                                   ▼                     │
 │  settings / lastResult /    ┌─────────────┐                     queries · outbox worker     │
-│  pending stores (storage)   │ GameSession │◀── InputState ◀──── keyboard · touch pad        │
+│  pending stores (storage)   │ GameSession │◀── InputState ◀── keyboard · joystick · buttons │
 └─────────────────────────────┤  (session/) ├─────────────────────────────┬───────────────────┘
                               │  fixed-step │                             │ Axios
                     HudStore ◀┤  clock      │                             ▼
@@ -37,7 +37,7 @@ Responsibilities are split into four layers that only talk through narrow interf
 
 ## 2. React ↔ PixiJS integration
 
-**Ownership.** React owns the page layout, the HUD, the touch pad and every dialog. `GameSession` owns the canvas, the Pixi `Application`, its ticker and the simulation. `GameScreen` mounts an empty `<div>` and hands it to a new `GameSession` inside `useEffect`; the effect cleanup calls `session.destroy()`. A new match is always a new session, so a restart cannot inherit state from the previous one.
+**Ownership.** React owns the page layout, the HUD, the touch controls (joystick and buttons) and every dialog. `GameSession` owns the canvas, the Pixi `Application`, its ticker and the simulation. `GameScreen` mounts an empty `<div>` and hands it to a new `GameSession` inside `useEffect`; the effect cleanup calls `session.destroy()`. A new match is always a new session, so a restart cannot inherit state from the previous one.
 
 **Strict Mode and async init.** Starting a session is asynchronous (textures, then `Application.init`), and Strict Mode mounts, unmounts and remounts the effect. The session is safe to destroy at any point:
 
@@ -47,7 +47,7 @@ Responsibilities are split into four layers that only talk through narrow interf
 
 **UI sync without per-frame React renders.** The session publishes a small `HudState` (`phase`, `score`, `timeLeft` in whole seconds, `health`, `pauseReason`, `endReason`, weapon readiness, load progress) through `HudStore`, an external store consumed with `useSyncExternalStore`. `HudStore.update()` compares every field and only notifies when something visible changed, so React renders a handful of times per second at most (typically once per second for the clock), never per frame. Continuous state (positions, velocities, projectiles, cooldown timers) stays in the simulation.
 
-**React → game.** The touch pad writes directly into the session's `InputState`; the pause dialog calls `session.pause()` / `session.resume()`. React never reads or writes simulation entities.
+**React → game.** The touch joystick and buttons write directly into the session's `InputState` (the joystick moves its knob through the DOM, so dragging never re-renders React); the pause dialog calls `session.pause()` / `session.resume()`. React never reads or writes simulation entities.
 
 **Game → React.** Besides `HudStore`, the session calls `onEnd(result)` exactly once. `GameScreen` persists the result and the pending record (`recordFinishedMatch`) before any network call, then shows the end banner.
 
@@ -104,7 +104,7 @@ Responsibilities are split into four layers that only talk through narrow interf
 
 ```
 stage
-└── world (scaled + letterboxed)
+└── world (scaled + centred; the sea sprite is stretched to the screen edges)
     ├── ArenaView       water TilingSprite, shallow halos, island tiles, rocks, plants, border
     ├── effects.under   wakes, splashes, sinking wrecks
     ├── ships           ShipView per ship (hull sprite by colour × damage tier, fire sprites)
@@ -114,7 +114,7 @@ stage
 ```
 
 - **Damage feedback.** Hull textures switch between the 4 tiers of the sprite set (healthy, damaged, heavily damaged, wreck). Fires appear on damaged hulls, and ships flash red when hit. The screen shakes when the player is hit or rammed. Destroyed ships leave a sinking wreck, an animated explosion (3 frames) and wood debris.
-- **Viewport.** `fitWorld()` scales the fixed world into the host while keeping its aspect ratio, and centres it with letterbox bars. The renderer resolution follows `devicePixelRatio` (capped at 2) with `autoDensity`, and a `ResizeObserver` refits on any size or DPR change. Gameplay never sees screen pixels: input is intent-based and every rule runs in world units, so bounds and collisions are identical at any size. `screenToWorld()` is available for pointer mapping.
+- **Viewport.** `fitWorld()` scales the fixed world into the host while keeping its aspect ratio, and centres it. There are no visible bars: on every resize the water `TilingSprite` is stretched over the whole visible area (plus a margin for screen shake), and its tile offset is compensated so the pattern stays anchored to world space. The playable arena stays the fixed 16:9 rectangle. The renderer resolution follows `devicePixelRatio` (capped at 2) with `autoDensity`, and a `ResizeObserver` refits on any size or DPR change. Gameplay never sees screen pixels: input is intent-based and every rule runs in world units, so bounds and collisions are identical at any size. `screenToWorld()` is available for pointer mapping.
 - **Cost-conscious choices.** No MSAA (sprites are already filtered) and no world mask. Projectiles and particles are pooled (up to 700 particles). Health-bar fill textures are cropped once per 2% step and shared. With the manual test clock there are no animation frames at all.
 
 ## 7. Resource management
@@ -135,6 +135,7 @@ stage
 
 - **Bindings** use `KeyboardEvent.code`, so they follow physical keys regardless of layout. `InputState` tracks every source separately (`key:KeyW`, `touch:7`…), so releasing one key never cancels an action still held by another key or finger. Moving and firing combine freely.
 - **Taps.** A press shorter than one simulation step is buffered until the next step reads it, then dropped.
+- **Joystick (touch-first devices).** `PlayerIntent` also carries analog steering: `targetHeading` (world radians, or `null`) and `throttle` (0..1). The joystick converts the stick vector into those values; screen and world share orientation, so the angle maps directly. A dead zone of 18% of the travel is ignored. In the simulation, held turn keys take precedence. Otherwise the bow rotates towards `targetHeading` at the normal `turnSpeed` and the speed approaches `maxSpeed × throttle`, reduced by `steeringMinThrottle` while the bow is still far from the requested heading. The ship keeps its two degrees of freedom (sail forward, turn), so the rules match the keyboard. `InputState.generation` increases on every clear: a finger that stays on the stick through a pause must be lifted before it steers again.
 - **Capture scope.** The keyboard controller only handles keys while the match is running and no dialog is open. It ignores editable targets and modifier combinations, calls `preventDefault` only for bound keys, and ignores auto-repeat events.
 - **Pause.** Triggered manually (`P`/`Esc`/HUD button) or automatically (`blur`, `pagehide`, hidden tab, portrait orientation on touch devices). On pause the clock accumulator resets and every held input is cleared. Cooldowns are stored as absolute simulation time, so they freeze with the clock. Resuming needs an explicit action, and since auto-repeat is ignored, a key held through the pause does nothing until it is pressed again.
 
@@ -179,8 +180,9 @@ useMatchSubmissionWorker (mounted once at the app root)
   effect over the outbox ─▶ for each 'pending' entry not in flight ─▶ useMutation(submitMatch)
       onMutate  → attempts + 1
       onSuccess → remove from outbox, lastResult.saved = true, invalidate ranking + history
-      onError   → 'failed' (retryable) or 'rejected' (4xx), with the message and HTTP status
-  'failed' entries go back to 'pending' every 15 s, on `online`, and when the network scenario changes
+      onError   → 'rejected' for 400/409/413/422 (the record itself is invalid), otherwise 'failed', with the message and HTTP status
+  'failed' entries go back to 'pending' every 15 s, on `online`, and when the network scenario changes;
+  on app start every stored entry (rejected included) goes back to 'pending'
   "Retry" buttons mark an entry 'pending' again (manual retry also works for 'rejected')
 ```
 
@@ -189,6 +191,8 @@ useMatchSubmissionWorker (mounted once at the app root)
 - **Status on screen.** `useSubmissionState()` combines the outbox with the live mutation state (`useMutationState`) into `sending`, `pending`, `failed`, `rejected` or `saved` for the result screen and banners.
 
 **Mock server** (`src/mocks`). The handlers implement the same contracts over a mock database persisted in `localStorage`, bump a monotonic `revision` on every write, validate payloads (`422`), and return `409` for a conflicting reuse of a `matchId`. Response bodies are computed when the request arrives and only then delayed, so a slow response realistically carries an older revision. Scenarios (see README) are selected at runtime, and latency and generated data come from a seeded PRNG. The worker also starts in the production build (`public/mockServiceWorker.js`). If it fails to register, the app still works and the API panels show their error states.
+
+**Keeping the mock server attached.** MSW's worker only answers pages listed in its in-memory `activeClientIds`. A browser that stops and restarts an idle worker empties that list, and requests then go to the hosting server (on Vercel, `404` for `/api/*`). Two safeguards handle this. First, `ensureMockClient()` runs in an Axios request interceptor: it posts `MOCK_ACTIVATE` to the controlling worker and waits for `MOCKING_ENABLED` (cached for 1 s), and re-registers the worker if it unregistered itself. Second, every mocked response carries `x-pirate-mock`: a response without it is converted into a retryable network error, so the outbox keeps the record and sends it again later.
 
 ## 11. Limitations and trade-offs
 

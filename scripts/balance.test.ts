@@ -13,7 +13,7 @@ function bot(sim: Simulation): PlayerIntent {
     const d = Math.hypot(e.x - p.x, e.y - p.y);
     if (!target || d < target.d) target = { x: e.x, y: e.y, d };
   }
-  const intent: PlayerIntent = { forward: true, turnLeft: false, turnRight: false, fireFront: false, fireLeft: false, fireRight: false };
+  const intent: PlayerIntent = { forward: true, turnLeft: false, turnRight: false, fireFront: false, fireLeft: false, fireRight: false, targetHeading: null, throttle: 0 };
   if (!target) return intent;
   const angle = Math.atan2(target.y - p.y, target.x - p.x);
   const delta = angleDelta(p.rotation, angle);

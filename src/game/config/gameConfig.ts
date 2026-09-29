@@ -42,6 +42,12 @@ export interface ShipHullConfig {
 export interface PlayerConfig extends ShipHullConfig {
   readonly acceleration: number;
   readonly deceleration: number;
+  /**
+   * Joystick steering: fraction of the requested thrust kept while the bow is
+   * still turning towards the stick direction (1 = no slowdown). Lets the ship
+   * turn around tightly when the stick points behind it.
+   */
+  readonly steeringMinThrottle: number;
   readonly frontCannon: WeaponConfig;
   readonly broadside: BroadsideConfig;
 }
@@ -136,6 +142,7 @@ export const BASE_GAME_CONFIG: GameConfig = {
     acceleration: 320,
     deceleration: 240,
     turnSpeed: 2.5,
+    steeringMinThrottle: 0.35,
     frontCannon: { damage: 20, projectileSpeed: 720, range: 720, cooldownSeconds: 0.45 },
     broadside: {
       damage: 20,

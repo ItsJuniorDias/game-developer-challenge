@@ -1,6 +1,6 @@
-import type { PlayerIntent } from '../sim/types';
+import type { GameAction } from '../sim/types';
 
-export type GameAction = keyof PlayerIntent;
+export type { GameAction };
 
 export const GAME_ACTIONS: readonly GameAction[] = ['forward', 'turnLeft', 'turnRight', 'fireFront', 'fireLeft', 'fireRight'];
 
