@@ -1,0 +1,201 @@
+const SOUND_URLS = import.meta.glob<string>('../../../assets/sounds/*.wav', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+
+export type SoundName =
+  | 'cannon_broadside'
+  | 'cannon_fire_1'
+  | 'cannon_fire_2'
+  | 'cannon_fire_3'
+  | 'cannonball_water_hit_1'
+  | 'cannonball_water_hit_2'
+  | 'game_complete'
+  | 'game_over'
+  | 'game_pause'
+  | 'game_resume'
+  | 'game_start'
+  | 'health_low'
+  | 'ocean_ambience_loop'
+  | 'score_point'
+  | 'ship_collision'
+  | 'ship_explosion_1'
+  | 'ship_explosion_2'
+  | 'ship_sailing_loop'
+  | 'ship_sinking'
+  | 'ship_wood_hit_1'
+  | 'ship_wood_hit_2'
+  | 'time_warning'
+  | 'ui_back'
+  | 'ui_click'
+  | 'ui_close'
+  | 'ui_hover'
+  | 'ui_open';
+
+function urlFor(name: SoundName): string | undefined {
+  return SOUND_URLS[`../../../assets/sounds/${name}.wav`];
+}
+
+interface PlayOptions {
+  volume?: number;
+  rate?: number;
+}
+
+interface Loop {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+}
+
+/**
+ * Best-effort Web Audio playback. Sounds decode lazily in the background and
+ * any failure (unsupported codec, blocked autoplay, network) is swallowed:
+ * audio must never block or break gameplay.
+ */
+class SoundManager {
+  private context: AudioContext | null = null;
+  private master: GainNode | null = null;
+  private readonly buffers = new Map<SoundName, Promise<AudioBuffer | null>>();
+  private readonly loops = new Map<SoundName, Loop>();
+  private readonly lastPlayed = new Map<SoundName, number>();
+  private enabled = true;
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (this.master) this.master.gain.value = enabled ? 0.7 : 0;
+    if (!enabled) this.stopAllLoops();
+  }
+
+  get isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  /** Must be called from a user gesture at least once to unlock audio. */
+  unlock(): void {
+    const ctx = this.ensureContext();
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => undefined);
+  }
+
+  preload(names: readonly SoundName[]): void {
+    for (const name of names) void this.buffer(name);
+  }
+
+  play(name: SoundName, options: PlayOptions = {}): void {
+    if (!this.enabled) return;
+    const ctx = this.ensureContext();
+    if (!ctx || !this.master) return;
+    // Avoid stacking the same sample many times in a single frame.
+    const now = ctx.currentTime;
+    const last = this.lastPlayed.get(name) ?? -1;
+    if (now - last < 0.03) return;
+    this.lastPlayed.set(name, now);
+    void this.buffer(name).then((buffer) => {
+      if (!buffer || !this.master || !this.enabled) return;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = options.rate ?? 1;
+      const gain = ctx.createGain();
+      gain.gain.value = options.volume ?? 1;
+      source.connect(gain).connect(this.master);
+      source.start();
+    });
+  }
+
+  startLoop(name: SoundName, volume: number): void {
+    if (!this.enabled || this.loops.has(name)) return;
+    const ctx = this.ensureContext();
+    if (!ctx || !this.master) return;
+    void this.buffer(name).then((buffer) => {
+      if (!buffer || !this.master || !this.enabled || this.loops.has(name)) return;
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+      source.connect(gain).connect(this.master);
+      source.start();
+      this.loops.set(name, { source, gain });
+    });
+  }
+
+  setLoopVolume(name: SoundName, volume: number): void {
+    const loop = this.loops.get(name);
+    if (loop && this.context) loop.gain.gain.setTargetAtTime(volume, this.context.currentTime, 0.1);
+  }
+
+  stopLoop(name: SoundName): void {
+    const loop = this.loops.get(name);
+    if (!loop) return;
+    this.loops.delete(name);
+    try {
+      loop.source.stop();
+    } catch {
+      // already stopped
+    }
+    loop.source.disconnect();
+    loop.gain.disconnect();
+  }
+
+  stopAllLoops(): void {
+    for (const name of [...this.loops.keys()]) this.stopLoop(name);
+  }
+
+  private ensureContext(): AudioContext | null {
+    if (this.context) return this.context;
+    if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') return null;
+    try {
+      this.context = new window.AudioContext();
+      this.master = this.context.createGain();
+      this.master.gain.value = this.enabled ? 0.7 : 0;
+      this.master.connect(this.context.destination);
+    } catch {
+      this.context = null;
+    }
+    return this.context;
+  }
+
+  private buffer(name: SoundName): Promise<AudioBuffer | null> {
+    let pending = this.buffers.get(name);
+    if (pending) return pending;
+    const ctx = this.ensureContext();
+    const url = urlFor(name);
+    if (!ctx || !url) return Promise.resolve(null);
+    pending = fetch(url)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
+      .then((data) => ctx.decodeAudioData(data))
+      .catch(() => {
+        // Allow a later retry if this sample failed to load.
+        this.buffers.delete(name);
+        return null;
+      });
+    this.buffers.set(name, pending);
+    return pending;
+  }
+}
+
+export const sounds = new SoundManager();
+
+export const COMBAT_SOUNDS: readonly SoundName[] = [
+  'cannon_broadside',
+  'cannon_fire_1',
+  'cannon_fire_2',
+  'cannon_fire_3',
+  'cannonball_water_hit_1',
+  'cannonball_water_hit_2',
+  'game_complete',
+  'game_over',
+  'game_pause',
+  'game_resume',
+  'game_start',
+  'health_low',
+  'ocean_ambience_loop',
+  'score_point',
+  'ship_collision',
+  'ship_explosion_1',
+  'ship_explosion_2',
+  'ship_sailing_loop',
+  'ship_sinking',
+  'ship_wood_hit_1',
+  'ship_wood_hit_2',
+  'time_warning',
+];

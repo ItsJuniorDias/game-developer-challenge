@@ -14,3 +14,8 @@ dist/
 
 # Logs
 *.log
+
+# Playwright artifacts (reports under reports/ are committed on purpose)
+test-results/
+playwright/.cache/
+blob-report/
