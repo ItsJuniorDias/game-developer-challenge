@@ -16,6 +16,7 @@ import { getOptions } from './storage/settings';
 async function bootstrap(): Promise<void> {
   normalizeInitialRoute();
   sounds.setEnabled(getOptions().soundEnabled);
+  sounds.installAutoUnlock();
   if (await startMocking()) setMockGuard({ ensureReady: ensureMockClient });
   const rootElement = document.getElementById('root');
   if (!rootElement) throw new Error('Root element #root not found');

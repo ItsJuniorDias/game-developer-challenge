@@ -33,6 +33,22 @@ export type SoundName =
   | 'ui_hover'
   | 'ui_open';
 
+/**
+ * iOS 17+ plays Web Audio in the "ambient" session by default, which the
+ * ring/silent switch mutes. Asking for "playback" makes the game audible like a
+ * video. Unsupported browsers simply ignore it.
+ */
+function preferPlaybackSession(): void {
+  if (typeof navigator === 'undefined') return;
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (!session || session.type === 'playback') return;
+  try {
+    session.type = 'playback';
+  } catch {
+    // Not allowed in this context: keep the browser default.
+  }
+}
+
 function urlFor(name: SoundName): string | undefined {
   return SOUND_URLS[`../../../assets/sounds/${name}.wav`];
 }
@@ -59,6 +75,8 @@ class SoundManager {
   private readonly loops = new Map<SoundName, Loop>();
   private readonly lastPlayed = new Map<SoundName, number>();
   private enabled = true;
+  private primed = false;
+  private autoUnlockInstalled = false;
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
@@ -70,10 +88,49 @@ class SoundManager {
     return this.enabled;
   }
 
-  /** Must be called from a user gesture at least once to unlock audio. */
+  /** AudioContext state ('none' before the first unlock); exposed for diagnostics. */
+  get state(): string {
+    return this.context?.state ?? 'none';
+  }
+
+  /**
+   * Unlocks audio output. Must run inside a user gesture: mobile browsers keep
+   * an AudioContext suspended until then, and iOS also "interrupts" it when the
+   * app goes to the background or the screen locks.
+   */
   unlock(): void {
     const ctx = this.ensureContext();
-    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => undefined);
+    if (!ctx) return;
+    preferPlaybackSession();
+    if (ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => undefined);
+    if (!this.primed) {
+      // Starting a buffer inside the gesture fully unlocks output on iOS Safari.
+      this.primed = true;
+      try {
+        const source = ctx.createBufferSource();
+        source.buffer = ctx.createBuffer(1, 1, 22_050);
+        source.connect(ctx.destination);
+        source.start(0);
+      } catch {
+        this.primed = false;
+      }
+    }
+  }
+
+  /**
+   * Retries the unlock on every user activation while output is not running
+   * (first touch, and after iOS interruptions). Gameplay touch controls use
+   * pointer events without clicks, so menu buttons alone are not enough.
+   */
+  installAutoUnlock(): void {
+    if (this.autoUnlockInstalled || typeof document === 'undefined') return;
+    this.autoUnlockInstalled = true;
+    const retry = (): void => {
+      if (!this.context || this.context.state !== 'running') this.unlock();
+    };
+    for (const type of ['pointerup', 'touchend', 'click', 'keydown', 'mousedown']) {
+      document.addEventListener(type, retry, { capture: true, passive: true });
+    }
   }
 
   preload(names: readonly SoundName[]): void {
@@ -142,9 +199,12 @@ class SoundManager {
 
   private ensureContext(): AudioContext | null {
     if (this.context) return this.context;
-    if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') return null;
+    if (typeof window === 'undefined') return null;
+    const AudioContextClass = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return null;
     try {
-      this.context = new window.AudioContext();
+      this.context = new AudioContextClass();
+      this.primed = false;
       this.master = this.context.createGain();
       this.master.gain.value = this.enabled ? 0.7 : 0;
       this.master.connect(this.context.destination);

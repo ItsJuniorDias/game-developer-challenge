@@ -337,3 +337,4 @@ Public URL: _to be published_.
 - The HUD sits over the top edge of the arena, as in the visual reference, and can partly cover a ship hugging the top.
 - On screens wider (or taller) than 16:9 the sea continues past the playable arena with no visible border: the ship stops at the arena limit there.
 - The mock API database lives in each browser's `localStorage`: there is no ranking shared across devices.
+- Audio on phones starts on the first touch, as browsers require. On iOS 17 and later the game asks for the "playback" audio session, so the ring/silent switch does not mute it. On iOS 16 and earlier, Safari still mutes web audio while the switch is on silent.

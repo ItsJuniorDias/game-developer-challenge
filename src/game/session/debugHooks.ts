@@ -1,3 +1,4 @@
+import { sounds } from '../audio/soundManager';
 import type { GameSession } from './gameSession';
 import { isInstrumentationEnabled } from './testConfig';
 
@@ -12,6 +13,7 @@ export interface PirateDebugApi {
   readonly resetPerf: () => void;
   readonly viewport: () => GameSession['viewport'];
   readonly sessionCount: () => number;
+  readonly audioState: () => string;
 }
 
 declare global {
@@ -43,6 +45,7 @@ export function registerDebugSession(session: GameSession): void {
     resetPerf: () => current?.resetPerf(),
     viewport: () => current?.viewport ?? null,
     sessionCount: () => created,
+    audioState: () => sounds.state,
   };
 }
 
