@@ -45,9 +45,33 @@ function toApiError(error: unknown): ApiError {
 
 export const DEFAULT_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 8000) || 8000;
 
+/** Header added by the mock server to every API response it produces. */
+export const MOCK_RESPONSE_HEADER = 'x-pirate-mock';
+
 function resolveTimeout(): number {
   const override = typeof window !== 'undefined' ? window.__PIRATE_TEST__?.apiTimeoutMs : undefined;
   return override ?? DEFAULT_TIMEOUT_MS;
+}
+
+interface MockGuard {
+  /** Resolves once the mock server is ready to answer this page. */
+  ensureReady: () => Promise<void>;
+}
+
+let mockGuard: MockGuard | null = null;
+
+/**
+ * Registers the simulated backend. While registered, every request first makes
+ * sure the Service Worker is handling this page, and any response that did not
+ * come from the mock server (it reached the hosting server instead, e.g. after
+ * the browser restarted the worker) is treated as a transient network error.
+ */
+export function setMockGuard(guard: MockGuard | null): void {
+  mockGuard = guard;
+}
+
+function mockUnavailable(): ApiError {
+  return new ApiError('network', 'The simulated API is not available right now.');
 }
 
 export function createHttpClient(): AxiosInstance {
@@ -55,13 +79,28 @@ export function createHttpClient(): AxiosInstance {
     baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
     headers: { Accept: 'application/json' },
   });
-  client.interceptors.request.use((config) => {
+  client.interceptors.request.use(async (config) => {
     config.timeout = resolveTimeout();
+    if (mockGuard) {
+      try {
+        await mockGuard.ensureReady();
+      } catch {
+        throw mockUnavailable();
+      }
+    }
     return config;
   });
   client.interceptors.response.use(
-    (response) => response,
-    (error: unknown) => Promise.reject(toApiError(error)),
+    (response) => {
+      if (mockGuard && !response.headers[MOCK_RESPONSE_HEADER]) throw mockUnavailable();
+      return response;
+    },
+    (error: unknown) => {
+      if (mockGuard && error instanceof AxiosError && error.response && !error.response.headers[MOCK_RESPONSE_HEADER]) {
+        return Promise.reject(mockUnavailable());
+      }
+      return Promise.reject(toApiError(error));
+    },
   );
   return client;
 }

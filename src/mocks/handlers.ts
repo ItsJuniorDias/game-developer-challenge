@@ -12,6 +12,7 @@ import {
   type RankingPage,
   type SubmitMatchResponse,
 } from '../api/contracts';
+import { MOCK_RESPONSE_HEADER } from '../api/http';
 import { OPTION_LIMITS } from '../game/config/gameConfig';
 import { Rng } from '../game/core/rng';
 import { isFiniteNumber, isRecord } from '../storage/localStore';
@@ -49,9 +50,14 @@ function latencyFor(scenario: ScenarioId, counter: number): number {
   }
 }
 
+/** Every mocked API response is tagged so the client can tell it from a real server answer. */
+function mockJson(body: unknown, init: { status?: number } = {}): Response {
+  return HttpResponse.json(body as Record<string, unknown>, { status: init.status ?? 200, headers: { [MOCK_RESPONSE_HEADER]: '1' } });
+}
+
 function errorResponse(status: number, code: string, message: string): Response {
   const body: ApiErrorBody = { error: { code, message } };
-  return HttpResponse.json(body, { status });
+  return mockJson(body, { status });
 }
 
 /** Scenario-driven failures, evaluated before any business logic. */
@@ -193,7 +199,7 @@ export const handlers = [
         playedAt: r.playedAt,
       })),
     };
-    return HttpResponse.json(body);
+    return mockJson(body);
   }),
 
   http.get('/api/players/:playerId/matches', async ({ request, params }) => {
@@ -231,7 +237,7 @@ export const handlers = [
         config: r.config,
       })),
     };
-    return HttpResponse.json(body);
+    return mockJson(body);
   }),
 
   http.post(API_ROUTES.matches, async ({ request }) => {
@@ -257,7 +263,7 @@ export const handlers = [
     if (existing) {
       if (!samePayload(existing, input)) return errorResponse(409, 'conflict', 'A different record already uses this matchId.');
       const replay: SubmitMatchResponse = { record: existing, created: false, revision: mockDb.revision };
-      return HttpResponse.json(replay, { status: 200 });
+      return mockJson(replay, { status: 200 });
     }
 
     const record: MatchRecord = { ...input, recordedAt: new Date().toISOString() };
@@ -267,7 +273,7 @@ export const handlers = [
       await delay('infinite');
     }
     const created: SubmitMatchResponse = { record, created: true, revision: mockDb.revision };
-    return HttpResponse.json(created, { status: 201 });
+    return mockJson(created, { status: 201 });
   }),
 
   http.all('/api/*', () => errorResponse(404, 'not_found', 'Unknown API route.')),

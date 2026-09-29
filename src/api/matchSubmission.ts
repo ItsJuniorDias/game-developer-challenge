@@ -12,6 +12,8 @@ import { queryKeys } from './queries';
 
 export const submitMutationKey = ['submit-match'] as const;
 const AUTO_RETRY_INTERVAL_MS = 15_000;
+/** Server answers meaning "this record itself is invalid": retrying cannot help. */
+const PERMANENT_STATUSES = new Set([400, 409, 413, 422]);
 
 /** Match ids currently being sent. Updated synchronously to block double sends. */
 const inFlight = new Set<string>();
@@ -79,7 +81,8 @@ export function useMatchSubmissionWorker(): void {
     },
     onError: (error, input) => {
       const apiError = error instanceof ApiError ? error : null;
-      const permanent = apiError !== null && apiError.kind === 'http' && !apiError.retryable;
+      // Only a rejected payload is final; anything else (404, 5xx, network) may recover.
+      const permanent = apiError !== null && apiError.kind === 'http' && PERMANENT_STATUSES.has(apiError.status ?? 0);
       const message = apiError ? (apiError.status ? `${apiError.message} (HTTP ${apiError.status})` : apiError.message) : 'Unexpected error';
       pendingMatches.markFailed(input.matchId, message, permanent);
     },
@@ -96,6 +99,13 @@ export function useMatchSubmissionWorker(): void {
     },
     [mutate],
   );
+
+  // A new page load is a natural retry point: give every stored record another try.
+  useEffect(() => {
+    for (const entry of pendingMatches.list()) {
+      if (entry.status !== 'pending') pendingMatches.markPending(entry.input.matchId);
+    }
+  }, []);
 
   // Send every record waiting in the outbox (also resumes after a refresh).
   useEffect(() => {
