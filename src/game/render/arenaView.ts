@@ -2,19 +2,36 @@ import { Container, Graphics, Sprite, TilingSprite, type Texture } from 'pixi.js
 import type { GameTextures } from '../assets/gameTextures';
 import { TILE_SIZE, type ArenaLayout, type IslandDef } from '../sim/arena';
 
-/** 9-slice tile ids from the tile sheet for each island style. */
-const SAND = { tl: 1, t: [2], tr: 3, l: [17], c: [18], r: [19], bl: 33, b: [34], br: 35 };
-const GRASS = { tl: 6, t: [7, 8], tr: 9, l: [22, 38], c: [23, 40, 39, 24], r: [25, 41], bl: 54, b: [55, 56], br: 57 };
-const SHALLOW = { tl: 10, t: [11], tr: 12, l: [26], c: [27], r: [28], bl: 42, b: [43], br: 44 };
+/**
+ * Tile ids from the tile sheet. Edges and centres list the variants in the
+ * order they sit next to each other in the sheet, so repeating them keeps the
+ * artwork continuous (the grass island is a 4x4 block: 2 edge and 2x2 centre variants).
+ */
+interface TileSet {
+  tl: number;
+  tr: number;
+  bl: number;
+  br: number;
+  t: readonly number[];
+  b: readonly number[];
+  l: readonly number[];
+  r: readonly number[];
+  c: readonly (readonly number[])[];
+}
 
-type TileSet = typeof SAND;
+const SAND: TileSet = { tl: 1, t: [2], tr: 3, l: [17], c: [[18]], r: [19], bl: 33, b: [34], br: 35 };
+const GRASS: TileSet = { tl: 6, t: [7, 8], tr: 9, l: [22, 38], c: [[23, 24], [39, 40]], r: [25, 41], bl: 54, b: [55, 56], br: 57 };
+const SHALLOW: TileSet = { tl: 10, t: [11], tr: 12, l: [26], c: [[27]], r: [28], bl: 42, b: [43], br: 44 };
+
+function cycle(list: readonly number[], i: number): number {
+  return list[i % list.length] ?? list[0] ?? 0;
+}
 
 function pickTile(set: TileSet, col: number, row: number, cols: number, rows: number): number {
   const top = row === 0;
   const bottom = row === rows - 1;
   const left = col === 0;
   const right = col === cols - 1;
-  const cycle = (list: number[], i: number): number => list[i % list.length] ?? list[0] ?? 0;
   if (top && left) return set.tl;
   if (top && right) return set.tr;
   if (bottom && left) return set.bl;
@@ -23,23 +40,31 @@ function pickTile(set: TileSet, col: number, row: number, cols: number, rows: nu
   if (bottom) return cycle(set.b, col - 1);
   if (left) return cycle(set.l, row - 1);
   if (right) return cycle(set.r, row - 1);
-  return cycle(set.c, (row - 1) * 2 + (col - 1));
+  return cycle(set.c[(row - 1) % set.c.length] ?? [], col - 1);
 }
+
+/** Darkening applied to the sea outside the playable arena. */
+const OUT_OF_BOUNDS_ALPHA = 0.18;
 
 /**
  * Static arena scenery (water, shallows, islands, rocks, plants). Built once
- * per match from the shared layout; only the water layers animate.
+ * per match from the shared layout; only the water layer animates. The sea
+ * extends to the edges of the screen (letterbox included), slightly dimmed
+ * outside the playable area, so wide screens never show empty bars.
  */
 export class ArenaView {
   readonly view = new Container({ label: 'arena' });
   private readonly water: TilingSprite;
+  private readonly outOfBounds = new Graphics();
+  private readonly layout: ArenaLayout;
   private time = 0;
 
   constructor(textures: GameTextures, layout: ArenaLayout) {
+    this.layout = layout;
     this.water = new TilingSprite({ texture: textures.water, width: layout.width, height: layout.height });
     this.water.tileScale.set(1);
     this.water.tint = 0x9fcbe8;
-    this.view.addChild(this.water);
+    this.view.addChild(this.water, this.outOfBounds);
 
     const tile = (id: number): Texture | undefined => textures.tiles.textures[`tile_${id}`];
     const place = (id: number, x: number, y: number, parent: Container): void => {
@@ -47,9 +72,9 @@ export class ArenaView {
       if (!texture) return;
       const sprite = new Sprite(texture);
       sprite.position.set(x, y);
-      // +0.75 units overlap hides hairline seams between neighbouring tiles.
-      sprite.width = TILE_SIZE + 0.75;
-      sprite.height = TILE_SIZE + 0.75;
+      // Exact size: overlapping semi-transparent shallows would draw darker lines.
+      sprite.width = TILE_SIZE;
+      sprite.height = TILE_SIZE;
       parent.addChild(sprite);
     };
 
@@ -94,14 +119,41 @@ export class ArenaView {
 
     const border = new Graphics()
       .rect(0, 0, layout.width, layout.height)
-      .stroke({ width: 10, color: 0x0b2f4a, alpha: 0.55, alignment: 1 });
+      .stroke({ width: 4, color: 0x0b2f4a, alpha: 0.45, alignment: 1 });
 
     this.view.addChild(shallows, islands, props, border);
   }
 
+  /**
+   * Stretches the sea over the part of the world that is visible on screen
+   * (world units, may extend beyond the arena) and dims what is out of bounds.
+   */
+  setVisibleRect(x: number, y: number, width: number, height: number): void {
+    const { width: aw, height: ah } = this.layout;
+    const left = Math.min(0, x);
+    const top = Math.min(0, y);
+    const right = Math.max(aw, x + width);
+    const bottom = Math.max(ah, y + height);
+    this.water.position.set(left, top);
+    this.water.width = right - left;
+    this.water.height = bottom - top;
+    this.syncWaterPattern();
+
+    const g = this.outOfBounds.clear();
+    const dim = { color: 0x031526, alpha: OUT_OF_BOUNDS_ALPHA };
+    if (top < 0) g.rect(left, top, right - left, -top).fill(dim);
+    if (bottom > ah) g.rect(left, ah, right - left, bottom - ah).fill(dim);
+    if (left < 0) g.rect(left, 0, -left, ah).fill(dim);
+    if (right > aw) g.rect(aw, 0, right - aw, ah).fill(dim);
+  }
+
   update(dt: number): void {
     this.time += dt;
-    // A slow drift is enough to make the sea feel alive without extra passes.
-    this.water.tilePosition.set(this.time * 7, this.time * 3.5);
+    this.syncWaterPattern();
+  }
+
+  /** Keeps the tiled pattern anchored to world space (plus a slow drift) wherever the sprite starts. */
+  private syncWaterPattern(): void {
+    this.water.tilePosition.set(this.time * 7 - this.water.x, this.time * 3.5 - this.water.y);
   }
 }

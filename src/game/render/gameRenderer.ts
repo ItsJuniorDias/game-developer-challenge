@@ -231,6 +231,14 @@ export class GameRenderer {
     this.fit = fitWorld(this.layout.width, this.layout.height, width, height);
     this.world.scale.set(this.fit.scale);
     this.world.position.set(this.fit.offsetX, this.fit.offsetY);
+    // The sea covers the whole screen; a margin hides the edges during screen shake.
+    const margin = 24;
+    this.arena?.setVisibleRect(
+      -this.fit.offsetX / this.fit.scale - margin,
+      -this.fit.offsetY / this.fit.scale - margin,
+      width / this.fit.scale + margin * 2,
+      height / this.fit.scale + margin * 2,
+    );
     this.app.render();
   }
 

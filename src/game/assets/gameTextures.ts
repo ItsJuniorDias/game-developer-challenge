@@ -25,6 +25,7 @@ export class AssetLoadError extends Error {
 }
 
 const LOAD_TIMEOUT_MS = 20_000;
+const TILE_INSET = 1;
 
 // Decode on the main thread: Pixi's worker path does not surface network
 // failures reliably, and main-thread fetches go through the same network layer
@@ -58,10 +59,13 @@ function tileSheetData(): SpritesheetData {
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < columns; col++) {
       const id = row * columns + col + 1;
+      // Inset by one texel: the sheet has no padding, so linear filtering at a
+      // frame edge would otherwise bleed the neighbouring tile (visible seams).
+      const inner = tileSize - 2 * TILE_INSET;
       frames[`tile_${id}`] = {
-        frame: { x: col * tileSize, y: row * tileSize, w: tileSize, h: tileSize },
-        sourceSize: { w: tileSize, h: tileSize },
-        spriteSourceSize: { x: 0, y: 0, w: tileSize, h: tileSize },
+        frame: { x: col * tileSize + TILE_INSET, y: row * tileSize + TILE_INSET, w: inner, h: inner },
+        sourceSize: { w: inner, h: inner },
+        spriteSourceSize: { x: 0, y: 0, w: inner, h: inner },
       };
     }
   }
