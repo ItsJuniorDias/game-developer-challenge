@@ -68,7 +68,7 @@ Responsibilities are split into four layers that only talk through narrow interf
 3. `updatePlayer`: rotation (keys, or joystick target heading), thrust with acceleration/deceleration, weapons (bow + both broadsides, each with its own `readyAt`).
 4. `updateEnemies`: Chaser and Shooter steering, Shooter fire.
 5. `CollisionSystem`: player vs enemies (rams / separation), enemy vs enemy separation, then islands and arena bounds.
-6. `updateProjectiles`: move, bounds, obstacles, hits, range. Skipped entirely if a ram just sank the player, and the loop stops as soon as the player sinks: once the player is down, nothing else can hit or score in that step.
+6. `updateProjectiles`: move, bounds, obstacles, hits, then expiry by range or lifetime (`WeaponConfig.range` / `lifetimeSeconds`, whichever comes first). Skipped entirely if a ram just sank the player, and the loop stops as soon as the player sinks: once the player is down, nothing else can hit or score in that step.
 7. Compact dead projectiles and enemies out of the arrays.
 8. `updateSpawner`, only while the player is alive and before the final step of the match.
 9. End check: `defeated` if the player's health is zero, otherwise `time_up` when the clock reaches the duration. Once `status` is `ended`, `step()` returns immediately, so movement, attacks, damage, spawns and scoring all stop.

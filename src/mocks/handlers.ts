@@ -17,7 +17,7 @@ import { OPTION_LIMITS } from '../game/config/gameConfig';
 import { Rng } from '../game/core/rng';
 import { isFiniteNumber, isRecord } from '../storage/localStore';
 import { mockDb } from './db';
-import { FIXTURE_PREFIX, manyPagesFixtures } from './fixtures';
+import { FIXTURE_PREFIX, manyPagesFixtures, manyPagesHistory } from './fixtures';
 import { getScenario, type ScenarioId } from './scenarios';
 
 type Resource = 'ranking' | 'history' | 'submit';
@@ -81,10 +81,16 @@ function failureFor(scenario: ScenarioId, resource: Resource): Response | null {
   }
 }
 
-function dataset(scenario: ScenarioId): readonly MatchRecord[] {
+/** Records visible to a ranking query (for its configuration) or a history query (for its player). */
+function dataset(scenario: ScenarioId, scope: { config?: MatchConfigDto; player?: { id: string; name: string } } = {}): readonly MatchRecord[] {
   const records = mockDb.records();
   if (scenario === 'empty') return records.filter((r) => !r.playerId.startsWith(FIXTURE_PREFIX));
-  if (scenario === 'many-pages') return [...records, ...manyPagesFixtures(testOverrides().seed ?? 7)];
+  if (scenario === 'many-pages') {
+    const seed = testOverrides().seed ?? 7;
+    // Both lists get several pages: rival battles for the requested configuration and a long personal history.
+    const extra = scope.config ? manyPagesFixtures(seed, scope.config) : scope.player ? manyPagesHistory(seed, scope.player.id, scope.player.name) : [];
+    return [...records, ...extra];
+  }
   return records;
 }
 
@@ -169,7 +175,7 @@ export const handlers = [
       spawnIntervalSeconds: Number(url.searchParams.get('spawnInterval')),
     };
     const revision = mockDb.revision;
-    const ranked = dataset(scenario)
+    const ranked = dataset(scenario, { config })
       .filter((r) => sameConfig(r.config, config))
       .slice()
       .sort(compareRanking);
@@ -210,7 +216,8 @@ export const handlers = [
     const paging = parsePaging(url);
     const playerId = String(params.playerId);
     const revision = mockDb.revision;
-    const mine = dataset(scenario)
+    const knownName = mockDb.records().find((r) => r.playerId === playerId)?.playerName ?? 'Captain';
+    const mine = dataset(scenario, { player: { id: playerId, name: knownName } })
       .filter((r) => r.playerId === playerId)
       .slice()
       .sort((a, b) => (a.playedAt !== b.playedAt ? (a.playedAt < b.playedAt ? 1 : -1) : a.matchId < b.matchId ? 1 : -1));

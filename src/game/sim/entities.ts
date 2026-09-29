@@ -52,7 +52,9 @@ export function createProjectile(
     vy: Math.sin(angle) * weapon.projectileSpeed,
     damage: weapon.damage,
     range: weapon.range,
+    lifetime: weapon.lifetimeSeconds,
     traveled: 0,
+    age: 0,
     alive: true,
   };
 }

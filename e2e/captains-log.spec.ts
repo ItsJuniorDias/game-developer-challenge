@@ -44,6 +44,12 @@ test.describe("Captain's Log: ranking and match history", () => {
     for (let i = 0; i < 3; i++) await page.getByTestId('page-next').click();
     await expect(page.getByTestId('page-label')).toHaveText('Page 4 of 27');
     await expect(page.getByTestId('ranking-row').first()).toContainText('16');
+    // Other configurations and the personal history are paginated too.
+    await page.getByLabel('Spawn interval').selectOption('5');
+    await expect(page.getByTestId('page-label')).toHaveText('Page 1 of 24');
+    await page.getByTestId('tab-history').click();
+    await expect(page.getByTestId('history-row')).toHaveCount(5);
+    await expect(page.getByTestId('page-label')).toHaveText('Page 1 of 7');
   });
 
   test('match history paginates the player battles', async ({ page }) => {

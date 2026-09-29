@@ -22,11 +22,11 @@
   "baselineAfterWarmup": {
     "Documents": 2,
     "Frames": 2,
-    "JSEventListeners": 196,
+    "JSEventListeners": 198,
     "LayoutObjects": 93,
-    "Nodes": 150,
-    "JSHeapUsedSize": 7830476,
-    "JSHeapTotalSize": 8437760
+    "Nodes": 144,
+    "JSHeapUsedSize": 7672228,
+    "JSHeapTotalSize": 8241152
   },
   "perCycle": [
     {
@@ -34,56 +34,56 @@
       "canvases": 0,
       "Documents": 2,
       "Frames": 2,
-      "JSEventListeners": 196,
+      "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 150,
-      "JSHeapUsedSize": 8110016,
-      "JSHeapTotalSize": 8699904
+      "Nodes": 144,
+      "JSHeapUsedSize": 7966912,
+      "JSHeapTotalSize": 8503296
     },
     {
       "cycle": 2,
       "canvases": 0,
       "Documents": 2,
       "Frames": 2,
-      "JSEventListeners": 196,
+      "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 150,
-      "JSHeapUsedSize": 8342340,
-      "JSHeapTotalSize": 8699904
+      "Nodes": 144,
+      "JSHeapUsedSize": 8205136,
+      "JSHeapTotalSize": 8503296
     },
     {
       "cycle": 3,
       "canvases": 0,
       "Documents": 2,
       "Frames": 2,
-      "JSEventListeners": 196,
+      "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 150,
-      "JSHeapUsedSize": 8505300,
-      "JSHeapTotalSize": 8962048
+      "Nodes": 144,
+      "JSHeapUsedSize": 8381068,
+      "JSHeapTotalSize": 9027584
     },
     {
       "cycle": 4,
       "canvases": 0,
       "Documents": 2,
       "Frames": 2,
-      "JSEventListeners": 196,
+      "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 150,
-      "JSHeapUsedSize": 8695904,
-      "JSHeapTotalSize": 9486336
+      "Nodes": 144,
+      "JSHeapUsedSize": 8597036,
+      "JSHeapTotalSize": 9289728
     },
     {
       "cycle": 5,
       "canvases": 0,
       "Documents": 2,
       "Frames": 2,
-      "JSEventListeners": 196,
+      "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 150,
-      "JSHeapUsedSize": 8798160,
-      "JSHeapTotalSize": 9486336
+      "Nodes": 144,
+      "JSHeapUsedSize": 8711248,
+      "JSHeapTotalSize": 9289728
     }
   ],
-  "heapGrowthPerCycleBytes": 172036
+  "heapGrowthPerCycleBytes": 186084
 }

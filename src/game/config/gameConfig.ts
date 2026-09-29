@@ -15,6 +15,8 @@ export interface WeaponConfig {
   readonly projectileSpeed: number;
   /** Maximum distance a projectile travels before it expires (world units). */
   readonly range: number;
+  /** Maximum time a projectile stays in the air (seconds); it expires on whichever limit comes first. */
+  readonly lifetimeSeconds: number;
   /** Minimum time between two shots of this weapon (seconds). */
   readonly cooldownSeconds: number;
 }
@@ -198,11 +200,12 @@ export const BASE_GAME_CONFIG: GameConfig = {
     deceleration: 240,
     turnSpeed: 2.5,
     steeringMinThrottle: 0.35,
-    frontCannon: { damage: 20, projectileSpeed: 720, range: 720, cooldownSeconds: 0.45 },
+    frontCannon: { damage: 20, projectileSpeed: 720, range: 720, lifetimeSeconds: 1, cooldownSeconds: 0.45 },
     broadside: {
       damage: 20,
       projectileSpeed: 620,
       range: 460,
+      lifetimeSeconds: 0.75,
       cooldownSeconds: 1.2,
       projectileCount: 3,
       spacing: 30,
@@ -232,7 +235,7 @@ export const BASE_GAME_CONFIG: GameConfig = {
     holdDistance: 380,
     aimTolerance: 0.14,
     leadFactor: 0.7,
-    cannon: { damage: 8, projectileSpeed: 520, range: 620, cooldownSeconds: 2.2 },
+    cannon: { damage: 8, projectileSpeed: 520, range: 620, lifetimeSeconds: 1.2, cooldownSeconds: 2.2 },
   },
   fixedStepSeconds: 1 / 60,
   maxFrameCatchUpSeconds: 0.25,

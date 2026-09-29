@@ -3,7 +3,7 @@ import { readJson, STORAGE_KEYS, writeJson } from '../storage/localStore';
 export const SCENARIOS = [
   { id: 'normal', label: 'Normal', description: 'Fast, successful responses with fixture captains.' },
   { id: 'empty', label: 'Empty lists', description: 'Only your own confirmed battles; no rival fixtures.' },
-  { id: 'many-pages', label: 'Many pages', description: '120 extra seeded battles to exercise pagination.' },
+  { id: 'many-pages', label: 'Many pages', description: '120 seeded rival battles for any ranking setup and 32 in your history.' },
   { id: 'slow', label: 'Slow network', description: 'Every response takes 2.5 seconds.' },
   { id: 'variable-latency', label: 'Variable latency', description: 'Seeded latency between 0.1 and 3 seconds.' },
   { id: 'out-of-order', label: 'Out-of-order responses', description: 'Odd requests take 1.5 s, even ones 0.1 s.' },

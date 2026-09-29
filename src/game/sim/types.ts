@@ -71,7 +71,10 @@ export interface Projectile {
   readonly vy: number;
   readonly damage: number;
   readonly range: number;
+  readonly lifetime: number;
   traveled: number;
+  /** Seconds since the projectile was fired. */
+  age: number;
   alive: boolean;
 }
 

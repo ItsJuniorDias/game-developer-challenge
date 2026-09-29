@@ -109,8 +109,9 @@ export class GameSession {
   async start(): Promise<void> {
     if (this.phase === 'disposed') return;
     const token = ++this.loadToken;
-    // A focus loss while the combat screen itself was downloading counts too.
-    this.pendingAutoPause = focusTracker.consume();
+    // A focus loss while the combat screen itself was downloading counts too. Only
+    // peeked here: under React Strict Mode this session may be disposed and remounted.
+    this.pendingAutoPause = focusTracker.peek();
     // Listen for focus loss from the start: a blur while loading must still pause the match.
     this.attachListeners();
     this.setPhase('loading', { loadProgress: 0, loadError: null });
@@ -163,7 +164,8 @@ export class GameSession {
     sounds.startLoop('ship_sailing_loop', 0);
     renderer.render(this.sim.world, 1, 0);
     // The window lost focus (or the tab was hidden) while loading: start paused.
-    const pending = this.pendingAutoPause;
+    const pending = this.pendingAutoPause ?? focusTracker.peek();
+    focusTracker.consume();
     this.pendingAutoPause = null;
     if (pending) this.pause(pending);
   }

@@ -26,6 +26,10 @@ export const focusTracker = {
     armed = true;
     lostReason = document.visibilityState === 'hidden' ? 'hidden' : null;
   },
+  /** Returns the focus loss recorded since arm() without clearing it (a session disposed while loading leaves it for the next one). */
+  peek(): 'focus_lost' | 'hidden' | null {
+    return lostReason;
+  },
   /** Returns (and clears) a focus loss recorded since arm(). */
   consume(): 'focus_lost' | 'hidden' | null {
     const reason = lostReason;

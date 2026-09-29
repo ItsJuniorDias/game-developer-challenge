@@ -5,7 +5,7 @@
   "description": "Top-down 2D naval shooter built with React, TypeScript and PixiJS.",
   "type": "module",
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22.13"
   },
   "scripts": {
     "dev": "vite",

@@ -78,7 +78,7 @@ export function baseFixtures(): MatchRecord[] {
   return records;
 }
 
-/** Large, seeded dataset used by the "many pages" scenario. */
+/** Large, seeded set of rival battles used by the "many pages" scenario (for the requested ranking configuration). */
 export function manyPagesFixtures(seed: number, config: MatchConfigDto = DEFAULT_CONFIG): MatchRecord[] {
   const rng = new Rng(seed);
   const records: MatchRecord[] = [];
@@ -86,7 +86,33 @@ export function manyPagesFixtures(seed: number, config: MatchConfigDto = DEFAULT
     const captain = rng.pick(FIXTURE_CAPTAINS);
     const defeated = rng.next() < 0.35;
     const duration = defeated ? Math.round(rng.range(30, config.sessionTimeSeconds - 1)) * 1000 : config.sessionTimeSeconds * 1000;
-    records.push(record(1000 + i, captain, rng.int(0, 45), duration, defeated ? 'defeated' : 'time_up', config, 2000 + i * 37));
+    const configTag = `${config.sessionTimeSeconds}-${config.spawnIntervalSeconds}`;
+    const generated = record(1000 + i, captain, rng.int(0, 45), duration, defeated ? 'defeated' : 'time_up', config, 2000 + i * 37);
+    records.push({ ...generated, matchId: `${generated.matchId}-${configTag}` });
+  }
+  return records;
+}
+
+/** Seeded battle history of the current player for the "many pages" scenario (32 battles, 7 pages). */
+export function manyPagesHistory(seed: number, playerId: string, playerName: string): MatchRecord[] {
+  const rng = new Rng(seed + 1);
+  const records: MatchRecord[] = [];
+  for (let i = 0; i < 32; i++) {
+    const config = i % 4 === 0 ? { sessionTimeSeconds: 60, spawnIntervalSeconds: 2 } : DEFAULT_CONFIG;
+    const defeated = rng.next() < 0.4;
+    const duration = defeated ? Math.round(rng.range(25, config.sessionTimeSeconds - 1)) * 1000 : config.sessionTimeSeconds * 1000;
+    const playedAt = new Date(BASE_TIME - (i + 1) * 5_400_000).toISOString();
+    records.push({
+      matchId: `${FIXTURE_PREFIX}history-${String(i + 1).padStart(3, '0')}`,
+      playerId,
+      playerName,
+      playedAt,
+      recordedAt: playedAt,
+      score: rng.int(3, 36),
+      durationMs: duration,
+      endReason: defeated ? 'defeated' : 'time_up',
+      config,
+    });
   }
   return records;
 }

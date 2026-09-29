@@ -31,6 +31,7 @@ export function updateProjectiles(world: WorldState, ctx: SimContext, dt: number
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.traveled += Math.hypot(p.vx, p.vy) * dt;
+    p.age += dt;
 
     if (!arena.isInside(p.x, p.y)) {
       end(ctx, p, 'bounds');
@@ -60,6 +61,7 @@ export function updateProjectiles(world: WorldState, ctx: SimContext, dt: number
       }
     }
 
-    if (p.alive && p.traveled >= p.range) end(ctx, p, 'expired');
+    // Range and lifetime are both enforced; the first limit reached sinks the ball.
+    if (p.alive && (p.traveled >= p.range || p.age >= p.lifetime)) end(ctx, p, 'expired');
   }
 }

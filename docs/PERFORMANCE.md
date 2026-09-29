@@ -2,8 +2,6 @@
 
 Profiling of the optimized production build (`vite build` served by `vite preview`), produced by `npm run perf` ([`perf/profile.spec.ts`](../perf/profile.spec.ts)). Raw data: [`reports/perf/match-180s.json`](../reports/perf/match-180s.json) (includes one sample per second) and [`reports/perf/memory-cycles.json`](../reports/perf/memory-cycles.json).
 
-> These measurements were taken before the last optimizations: one redundant render per frame was removed and the combat screen became a lazily loaded chunk (the initial bundle dropped from 1.1 MB to 0.77 MB). Both only reduce work, so the numbers below are an upper bound for the current build. Run `npm run perf` to refresh them.
-
 ## Reference environment
 
 | Item | Value |
@@ -21,18 +19,19 @@ Profiling of the optimized production build (`vite build` served by `vite previe
 
 | Metric | Result |
 | --- | --- |
-| Frames recorded | 10,803 over 179.9 s of simulated time |
-| Average frame rate | **59.7 FPS** |
-| Frame time p50 / **p95** / p99 | 16.7 ms / **16.8 ms** / 16.8 ms |
-| Frames over 20 ms | 2 (0.02%) |
-| Frames over 33 ms | 1 (a single 800 ms hitch) |
-| Entities, peak | 14 (player + enemies + cannonballs) |
-| Entities, average | 9.3 |
+| Frames recorded | 10,799 over 179.5 s of simulated time |
+| Average frame rate | **60.0 FPS** |
+| Frame time p50 / **p95** / p99 | 16.7 ms / **16.7 ms** / 16.8 ms |
+| Longest frame | 16.8 ms |
+| Frames over 20 ms | 0 |
+| Frames over 33 ms | 0 |
+| Entities, peak | 15 (player + enemies + cannonballs) |
+| Entities, average | 9.2 |
 | Enemies alive, peak | 10 (spawn cap) |
 | Cannonballs in flight, peak | 5 |
-| Pooled effect particles, peak | 225 (pool limit 700) |
+| Pooled effect particles, peak | 205 (pool limit 700) |
 
-The game held the 60 FPS target for the whole match. p95 and p99 equal the display interval, so there is no sustained jank. The single 800 ms frame did not happen again in an earlier 50 s run of the same harness (maximum 16.8 ms). It lines up with no gameplay event in the samples and is most likely a one-off stall of the host (headless browser or OS). It is listed below as an observed limitation.
+The game held the 60 FPS target for the whole match: p95 and p99 equal the display interval and no frame was longer than 16.8 ms, so there is no jank at all. (An earlier run on a previous build recorded one isolated 800 ms stall that lined up with no gameplay event; it did not reproduce on the final build and is treated as a host hiccup.)
 
 ## 2. Memory after five start → play → exit cycles
 
@@ -40,18 +39,18 @@ The game held the 60 FPS target for the whole match. p95 and p99 equal the displ
 
 | After | JS heap used | JS event listeners | DOM nodes | Canvases |
 | --- | --- | --- | --- | --- |
-| Warm-up | 7.83 MB | 196 | 150 | 0 |
-| Cycle 1 | 8.11 MB | 196 | 150 | 0 |
-| Cycle 2 | 8.34 MB | 196 | 150 | 0 |
-| Cycle 3 | 8.51 MB | 196 | 150 | 0 |
-| Cycle 4 | 8.70 MB | 196 | 150 | 0 |
-| Cycle 5 | 8.80 MB | 196 | 150 | 0 |
+| Warm-up | 7.67 MB | 198 | 144 | 0 |
+| Cycle 1 | 7.97 MB | 198 | 144 | 0 |
+| Cycle 2 | 8.21 MB | 198 | 144 | 0 |
+| Cycle 3 | 8.38 MB | 198 | 144 | 0 |
+| Cycle 4 | 8.60 MB | 198 | 144 | 0 |
+| Cycle 5 | 8.71 MB | 198 | 144 | 0 |
 
-Event listeners, DOM nodes and documents stay identical after every cycle, and no canvas or WebGL context survives leaving a match (Pixi loses its context on `destroy`). The JS heap still grew by about 170 KB per cycle, with a shrinking step each time (+232 KB, +163 KB, +190 KB, +102 KB), so I investigated it.
+Event listeners, DOM nodes and documents stay identical after every cycle, and no canvas or WebGL context survives leaving a match (Pixi loses its context on `destroy`). The JS heap still grew by about 190 KB per cycle (+238 KB, +176 KB, +216 KB, +114 KB after the first cycle), with the step trending down, so I investigated it.
 
 ### Investigation
 
-1. **Heap snapshot diff.** Snapshots were taken (after forced GC) after cycle 2 and after cycle 6, and compared by constructor. The object growth was only about 22 KB per cycle: 48 `Generator`, 96 `Promise`, 144 closures, 42 `ArrayBuffer` headers and 259 plain objects over 4 cycles. No game type (ships, sprites, textures, Pixi containers, sessions, stores) grew. The rest of the ~170 KB is engine metadata (compiled code, type feedback), which is not retained game data.
+1. **Heap snapshot diff.** Snapshots were taken (after forced GC) after cycle 2 and after cycle 6, and compared by constructor. The object growth was only about 22 KB per cycle: 48 `Generator`, 96 `Promise`, 144 closures, 42 `ArrayBuffer` headers and 259 plain objects over 4 cycles. No game type (ships, sprites, textures, Pixi containers, sessions, stores) grew. The rest of the ~190 KB is engine metadata (compiled code, type feedback), which is not retained game data.
 2. **Retainers.** Following the retainer paths of the new `Generator`/`Promise` objects leads to a chain of `PromiseReaction`s on MSW's internal `workerPromise`. That is the channel MSW uses to post its keep-alive message to the Service Worker every 5 seconds.
 3. **Confirmation without gameplay.** Leaving the app idle on the main menu for 60 s, without starting any match, adds exactly +12 `Generator`, +24 `Promise` and +24 promise reactions (≈ 8 KB), one set per 5-second keep-alive.
 

@@ -48,7 +48,7 @@ A top-down 2D naval shooter built with **React 19**, **TypeScript (strict)** and
 
 ## Getting started
 
-Requirements: **Node.js ≥ 20.19** (developed with Node 24) and **npm**.
+Requirements: **Node.js ≥ 22.13** (developed with Node 24; see `.nvmrc`) and **npm**. The minimum comes from Vitest, MSW and ESLint.
 
 ```bash
 npm install
@@ -129,6 +129,7 @@ As in the reference art (`assets/sample_menu.png` and `assets/sample_ranking.png
 
 - Match length is configurable between **60 and 180 s** of active play (pauses do not count).
 - Enemies appear every configured interval, on free water at least **700 units** away from the player (if the sea is crowded, a fallback accepts the farthest free point, never closer than ~495 units). The first two are always a **Chaser** and then a **Shooter**, so both types show up in every standard match.
+- Cannonballs fly in a straight line at their weapon's speed and sink at their range or lifetime, whichever comes first. They also sink when they hit a ship (damage applied once), an island or rock, or leave the arena.
 - **Chaser:** hunts the player (going around islands with A\*) and explodes on contact, dealing damage. This self-destruction **does not score**.
 - **Shooter:** closes in, holds a safe distance, aims with target leading and fires when the player is in range with a clear line of fire.
 - Every enemy sunk by the player's cannons is worth **1 point**.
@@ -156,7 +157,7 @@ Every gameplay and balancing parameter lives in one typed configuration: [`src/g
 | Health | 100 | 40 | 60 |
 | Max speed (u/s) | 210 (accel. 320, decel. 240) | 150 | 125 |
 | Turn rate (rad/s) | 2.5 | 2.0 | 1.7 |
-| Attack | Bow: 20 damage, 720 u/s, range 720, 0.45 s cooldown. Broadside: 3 × 20 damage, 620 u/s, range 460, 1.2 s cooldown per side | Ram: 15 damage | Cannon: 8 damage, 520 u/s, range 620, 2.2 s cooldown. Opens fire at 560 u, holds at 380 u |
+| Attack | Bow: 20 damage, 720 u/s, range 720, lifetime 1 s, 0.45 s cooldown. Broadside: 3 × 20 damage, 620 u/s, range 460, lifetime 0.75 s, 1.2 s cooldown per side | Ram: 15 damage | Cannon: 8 damage, 520 u/s, range 620, lifetime 1.2 s, 2.2 s cooldown. Opens fire at 560 u, holds at 380 u |
 
 Spawns: first enemy at 1.5 s, 55% Chaser / 45% Shooter, at most 10 enemies alive, and a 1 s grace period (no attacks) after spawning. Enemies accelerate at 225 (Chaser) and 187.5 (Shooter) u/s², and the Shooter leads its aim by 70% of the player's motion during the cannonball's flight. AI timings (re-planning every 0.5 s, avoidance lookahead), cannonball radius and push shares are in the same file. The simulation runs in fixed 1/60 s steps and catches up at most 0.25 s per frame.
 
@@ -204,7 +205,7 @@ The handlers live in [`src/mocks/handlers.ts`](src/mocks/handlers.ts) and are th
 | --- | --- | --- |
 | `normal` | Normal | Success with 120–350 ms latency and rival captains (fixtures) |
 | `empty` | Empty lists | Hides the fixtures: only your own matches are listed |
-| `many-pages` | Many pages | +120 seeded matches (27 pages in the default ranking) |
+| `many-pages` | Many pages | +120 seeded rival matches for whichever ranking configuration is shown (27 pages at 120 s / 3 s) and 32 seeded battles in your Match History (7 pages) |
 | `slow` | Slow network | Every response takes 2.5 s |
 | `variable-latency` | Variable latency | Seeded latency between 0.1 and 3 s |
 | `out-of-order` | Out-of-order responses | Odd requests take 1.5 s, even ones 0.1 s |

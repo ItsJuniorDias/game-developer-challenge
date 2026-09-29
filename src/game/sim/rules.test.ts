@@ -82,6 +82,20 @@ describe('enemy behaviour', () => {
   });
 });
 
+describe('projectiles', () => {
+  it('expire at the first of their range or lifetime', () => {
+    const slow = { ...BASE_GAME_CONFIG.player.frontCannon, projectileSpeed: 100, range: 10_000, lifetimeSeconds: 0.5 };
+    const cfg: GameConfig = { ...config(), player: { ...BASE_GAME_CONFIG.player, frontCannon: slow } };
+    const sim = new Simulation({ config: cfg, seed: 1, layout: OPEN_SEA });
+    run(sim, STEP, { fireFront: true });
+    expect(sim.world.projectiles).toHaveLength(1);
+    run(sim, 0.4);
+    expect(sim.world.projectiles).toHaveLength(1);
+    run(sim, 0.15);
+    expect(sim.world.projectiles).toHaveLength(0);
+  });
+});
+
 describe('collisions', () => {
   it('the bow stops at the island shore instead of entering it', () => {
     const sim = new Simulation({ config: config(), seed: 1 });
