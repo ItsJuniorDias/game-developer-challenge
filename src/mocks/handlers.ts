@@ -16,6 +16,7 @@ import { MOCK_RESPONSE_HEADER } from '../api/http';
 import { OPTION_LIMITS } from '../game/config/gameConfig';
 import { Rng } from '../game/core/rng';
 import { isFiniteNumber, isRecord } from '../storage/localStore';
+import { getProfile } from '../storage/settings';
 import { mockDb } from './db';
 import { FIXTURE_PREFIX, manyPagesFixtures, manyPagesHistory } from './fixtures';
 import { getScenario, type ScenarioId } from './scenarios';
@@ -81,15 +82,27 @@ function failureFor(scenario: ScenarioId, resource: Resource): Response | null {
   }
 }
 
+/**
+ * The captain playing in this browser. The "many pages" scenario seeds a long
+ * battle history for them; this mock server lives in the same browser, so it
+ * can read the local profile (a real backend would simply have the records).
+ */
+function localCaptain(): { id: string; name: string } {
+  const profile = getProfile();
+  return { id: profile.playerId, name: profile.playerName };
+}
+
 /** Records visible to a ranking query (for its configuration) or a history query (for its player). */
-function dataset(scenario: ScenarioId, scope: { config?: MatchConfigDto; player?: { id: string; name: string } } = {}): readonly MatchRecord[] {
+function dataset(scenario: ScenarioId, scope: { config?: MatchConfigDto } = {}): readonly MatchRecord[] {
   const records = mockDb.records();
   if (scenario === 'empty') return records.filter((r) => !r.playerId.startsWith(FIXTURE_PREFIX));
   if (scenario === 'many-pages') {
     const seed = testOverrides().seed ?? 7;
-    // Both lists get several pages: rival battles for the requested configuration and a long personal history.
-    const extra = scope.config ? manyPagesFixtures(seed, scope.config) : scope.player ? manyPagesHistory(seed, scope.player.id, scope.player.name) : [];
-    return [...records, ...extra];
+    // One dataset for both tabs: rival battles for the requested configuration plus the local
+    // captain's long history, so their generated battles also rank in the matching configuration.
+    const captain = localCaptain();
+    const rivals = scope.config ? manyPagesFixtures(seed, scope.config) : [];
+    return [...records, ...rivals, ...manyPagesHistory(seed, captain.id, captain.name)];
   }
   return records;
 }
@@ -216,8 +229,7 @@ export const handlers = [
     const paging = parsePaging(url);
     const playerId = String(params.playerId);
     const revision = mockDb.revision;
-    const knownName = mockDb.records().find((r) => r.playerId === playerId)?.playerName ?? 'Captain';
-    const mine = dataset(scenario, { player: { id: playerId, name: knownName } })
+    const mine = dataset(scenario)
       .filter((r) => r.playerId === playerId)
       .slice()
       .sort((a, b) => (a.playedAt !== b.playedAt ? (a.playedAt < b.playedAt ? 1 : -1) : a.matchId < b.matchId ? 1 : -1));

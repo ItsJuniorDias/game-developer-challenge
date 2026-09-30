@@ -30,6 +30,7 @@ A top-down 2D naval shooter built with **React 19**, **TypeScript (strict)** and
 - [Deployment](#deployment)
 - [Credits and licenses](#credits-and-licenses)
 - [Known limitations](#known-limitations)
+- [Development time](#development-time)
 
 ## Stack
 
@@ -216,7 +217,7 @@ The handlers live in [`src/mocks/handlers.ts`](src/mocks/handlers.ts) and are th
 | --- | --- | --- |
 | `normal` | Normal | Success with 120–350 ms latency and rival captains (fixtures) |
 | `empty` | Empty lists | Hides the fixtures: only your own matches are listed |
-| `many-pages` | Many pages | +120 seeded rival matches for whichever ranking configuration is shown (27 pages at 120 s / 3 s) and 32 seeded battles in your Match History (7 pages) |
+| `many-pages` | Many pages | +120 seeded rival matches for whichever ranking configuration is shown, plus 32 seeded battles of your own. Both tabs read one dataset: your battles fill 7 pages of Match History and also rank with their setup (32 ranking pages at 120 s / 3 s) |
 | `slow` | Slow network | Every response takes 2.5 s |
 | `variable-latency` | Variable latency | Seeded latency between 0.1 and 3 s |
 | `out-of-order` | Out-of-order responses | Odd requests take 1.5 s, even ones 0.1 s |
@@ -368,3 +369,12 @@ Public URL: **https://game-developer-challenge.vercel.app** (Vercel, deployed fr
 - On screens wider (or taller) than 16:9 the sea continues past the playable arena with no visible border: the ship stops at the arena limit there.
 - The mock API database lives in each browser's `localStorage`: there is no ranking shared across devices.
 - Audio on phones starts on the first touch, as browsers require. On iOS 17 and later the game asks for the "playback" audio session, so the ring/silent switch does not mute it. On iOS 16 and earlier, Safari still mutes web audio while the switch is on silent.
+
+## Development time
+
+About **two days**, on 29 and 30 September 2026. The [commit history](https://github.com/ItsJuniorDias/game-developer-challenge/commits/main) records each step.
+
+| Day | Work |
+| --- | --- |
+| 29 Sep 2026 | Game (simulation, AI, collisions, rendering), React screens, mocked ranking and history API, E2E and unit tests, README and ARCHITECTURE.md; then the touch joystick, mobile audio, a full audit with its fixes, profiling and delivery checks |
+| 30 Sep 2026 | Game-feel polish (wakes, shadows, richer effects, HUD feedback, spatial audio), a new profiling run and memory investigation, and a final check of every requirement in the brief |

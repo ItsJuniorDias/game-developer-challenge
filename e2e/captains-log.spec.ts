@@ -1,4 +1,4 @@
-import { expect, openMenu, setupApp, test } from './fixtures';
+import { expect, openMenu, PROFILE, setupApp, test } from './fixtures';
 import { historyDb } from './mockDb';
 
 test.describe("Captain's Log: ranking and match history", () => {
@@ -36,13 +36,13 @@ test.describe("Captain's Log: ranking and match history", () => {
     await expect(rows.nth(1)).toContainText('William Kidd');
   });
 
-  test('many pages scenario paginates the ranking', async ({ page }) => {
+  test('many pages scenario paginates both tabs from one consistent dataset', async ({ page }) => {
     await setupApp(page, {}, { scenario: 'many-pages' });
     await openMenu(page);
     await page.getByTestId('menu-ranking').click();
-    await expect(page.getByTestId('page-label')).toHaveText('Page 1 of 27');
+    await expect(page.getByTestId('page-label')).toHaveText('Page 1 of 32');
     for (let i = 0; i < 3; i++) await page.getByTestId('page-next').click();
-    await expect(page.getByTestId('page-label')).toHaveText('Page 4 of 27');
+    await expect(page.getByTestId('page-label')).toHaveText('Page 4 of 32');
     await expect(page.getByTestId('ranking-row').first()).toContainText('16');
     // Other configurations and the personal history are paginated too.
     await page.getByLabel('Spawn interval').selectOption('5');
@@ -50,6 +50,24 @@ test.describe("Captain's Log: ranking and match history", () => {
     await page.getByTestId('tab-history').click();
     await expect(page.getByTestId('history-row')).toHaveCount(5);
     await expect(page.getByTestId('page-label')).toHaveText('Page 1 of 7');
+
+    // One dataset for both tabs: every battle in the history also ranks with its configuration.
+    const missing = await page.evaluate(async (playerId) => {
+      const get = async (url: string) => (await fetch(url)).json();
+      const history = await get(`/api/players/${playerId}/matches?page=1&pageSize=50`);
+      const ranked = new Set<string>();
+      const configs = new Set<string>(history.items.map((m: { config: { sessionTimeSeconds: number; spawnIntervalSeconds: number } }) => `${m.config.sessionTimeSeconds}/${m.config.spawnIntervalSeconds}`));
+      for (const config of configs) {
+        const [sessionTime, spawnInterval] = config.split('/');
+        for (let pageNumber = 1, total = 1; pageNumber <= total; pageNumber++) {
+          const ranking = await get(`/api/ranking?page=${pageNumber}&pageSize=50&sessionTime=${sessionTime}&spawnInterval=${spawnInterval}`);
+          total = ranking.totalPages;
+          for (const entry of ranking.items) if (entry.playerId === playerId) ranked.add(entry.matchId);
+        }
+      }
+      return { total: history.totalItems, missing: history.items.filter((m: { matchId: string }) => !ranked.has(m.matchId)).length };
+    }, PROFILE.playerId);
+    expect(missing).toEqual({ total: 32, missing: 0 });
   });
 
   test('match history paginates the player battles', async ({ page }) => {
