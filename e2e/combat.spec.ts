@@ -25,6 +25,27 @@ test.describe('Combat', () => {
     expect((await state(page)).stats.shotsFired).toBe(2);
   });
 
+  test('the bow button restarts its reload sweep for every shot, even while fire is held', async ({ page }) => {
+    await setupApp(page, { firstSpawnDelaySeconds: 999 });
+    await startMatch(page);
+    const sweep = page.getByTestId('touch-fireFront').locator('.pad-button__cooldown');
+    await expect(sweep).toHaveCount(0);
+    await page.keyboard.down('Space');
+    await advance(page, 50);
+    await expect(sweep).toHaveCount(1);
+    await sweep.evaluate((element) => {
+      element.setAttribute('data-shot', 'first');
+    });
+    // Held fire: the weapon reloads and fires again without ever reporting "ready".
+    await advance(page, 450);
+    expect((await state(page)).stats.shotsFired).toBe(2);
+    await expect(sweep).toHaveCount(1);
+    await expect(sweep).not.toHaveAttribute('data-shot', 'first');
+    await page.keyboard.up('Space');
+    await advance(page, 500);
+    await expect(sweep).toHaveCount(0);
+  });
+
   test('broadsides fire three parallel projectiles to each side', async ({ page }) => {
     await setupApp(page, { firstSpawnDelaySeconds: 999 });
     await startMatch(page);

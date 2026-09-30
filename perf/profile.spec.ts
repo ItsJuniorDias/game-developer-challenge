@@ -13,6 +13,7 @@ interface Sample {
   enemies: number;
   projectiles: number;
   particles: number;
+  texts: number;
   ships: number;
 }
 
@@ -152,13 +153,13 @@ test('three-minute stress match: frame rate, p95 frame time and entities', async
       const w = window as unknown as {
         __pirate: {
           state(): { time: number; enemies: unknown[]; projectiles: unknown[]; phase: string } | null;
-          perf(): { render: { ships: number; projectiles: number; particles: number } | null } | null;
+          perf(): { render: { ships: number; projectiles: number; particles: number; texts: number } | null } | null;
         };
       };
       const s = w.__pirate.state();
       const perf = w.__pirate.perf();
       return s
-        ? { t: s.time, phase: s.phase, enemies: s.enemies.length, projectiles: s.projectiles.length, particles: perf?.render?.particles ?? 0, ships: perf?.render?.ships ?? 0 }
+        ? { t: s.time, phase: s.phase, enemies: s.enemies.length, projectiles: s.projectiles.length, particles: perf?.render?.particles ?? 0, texts: perf?.render?.texts ?? 0, ships: perf?.render?.ships ?? 0 }
         : null;
     });
     if (!sample || sample.phase !== 'running') break;
@@ -195,6 +196,7 @@ test('three-minute stress match: frame rate, p95 frame time and entities', async
       peakEnemies: Math.max(...samples.map((s) => s.enemies)),
       peakProjectiles: Math.max(...samples.map((s) => s.projectiles)),
       peakParticles: Math.max(...samples.map((s) => s.particles)),
+      peakFloatingTexts: Math.max(...samples.map((s) => s.texts)),
     },
     simulatedSeconds: samples[samples.length - 1]?.t ?? 0,
     samples,

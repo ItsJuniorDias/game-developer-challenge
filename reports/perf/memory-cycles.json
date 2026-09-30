@@ -24,9 +24,9 @@
     "Frames": 2,
     "JSEventListeners": 198,
     "LayoutObjects": 93,
-    "Nodes": 144,
-    "JSHeapUsedSize": 7672228,
-    "JSHeapTotalSize": 8241152
+    "Nodes": 146,
+    "JSHeapUsedSize": 8070176,
+    "JSHeapTotalSize": 8765440
   },
   "perCycle": [
     {
@@ -36,9 +36,9 @@
       "Frames": 2,
       "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 144,
-      "JSHeapUsedSize": 7966912,
-      "JSHeapTotalSize": 8503296
+      "Nodes": 146,
+      "JSHeapUsedSize": 8428024,
+      "JSHeapTotalSize": 9289728
     },
     {
       "cycle": 2,
@@ -47,9 +47,9 @@
       "Frames": 2,
       "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 144,
-      "JSHeapUsedSize": 8205136,
-      "JSHeapTotalSize": 8503296
+      "Nodes": 146,
+      "JSHeapUsedSize": 8691388,
+      "JSHeapTotalSize": 9289728
     },
     {
       "cycle": 3,
@@ -58,9 +58,9 @@
       "Frames": 2,
       "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 144,
-      "JSHeapUsedSize": 8381068,
-      "JSHeapTotalSize": 9027584
+      "Nodes": 146,
+      "JSHeapUsedSize": 8883024,
+      "JSHeapTotalSize": 9551872
     },
     {
       "cycle": 4,
@@ -69,9 +69,9 @@
       "Frames": 2,
       "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 144,
-      "JSHeapUsedSize": 8597036,
-      "JSHeapTotalSize": 9289728
+      "Nodes": 146,
+      "JSHeapUsedSize": 9120748,
+      "JSHeapTotalSize": 9814016
     },
     {
       "cycle": 5,
@@ -80,10 +80,10 @@
       "Frames": 2,
       "JSEventListeners": 198,
       "LayoutObjects": 93,
-      "Nodes": 144,
-      "JSHeapUsedSize": 8711248,
-      "JSHeapTotalSize": 9289728
+      "Nodes": 146,
+      "JSHeapUsedSize": 9279992,
+      "JSHeapTotalSize": 9814016
     }
   ],
-  "heapGrowthPerCycleBytes": 186084
+  "heapGrowthPerCycleBytes": 212992
 }

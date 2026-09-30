@@ -11,6 +11,8 @@ export interface GameTextures {
     circle: Texture;
     ring: Texture;
     trail: Texture;
+    /** Foam streak stretched along a rope behind each ship (height = streak width). */
+    wake: Texture;
   };
 }
 
@@ -103,6 +105,30 @@ function createTrailTexture(): Texture {
   return Texture.from(canvas);
 }
 
+/** Horizontal foam streak: transparent at the tail (left), strongest at the stern (right), soft edges. */
+function createWakeTexture(): Texture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 10;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new AssetLoadError('Canvas 2D context unavailable', null);
+  const across = ctx.createLinearGradient(0, 0, 0, 10);
+  across.addColorStop(0, 'rgba(255,255,255,0)');
+  across.addColorStop(0.35, 'rgba(255,255,255,0.9)');
+  across.addColorStop(0.65, 'rgba(255,255,255,0.9)');
+  across.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = across;
+  ctx.fillRect(0, 0, 64, 10);
+  ctx.globalCompositeOperation = 'destination-in';
+  const along = ctx.createLinearGradient(0, 0, 64, 0);
+  along.addColorStop(0, 'rgba(255,255,255,0)');
+  along.addColorStop(0.55, 'rgba(255,255,255,0.45)');
+  along.addColorStop(1, 'rgba(255,255,255,0.85)');
+  ctx.fillStyle = along;
+  ctx.fillRect(0, 0, 64, 10);
+  return Texture.from(canvas);
+}
+
 function createFxTextures(): GameTextures['fx'] {
   const circle = createCanvasTexture(64, (ctx, size) => {
     const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
@@ -119,7 +145,7 @@ function createFxTextures(): GameTextures['fx'] {
     ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
     ctx.stroke();
   });
-  return { circle, ring, trail: createTrailTexture() };
+  return { circle, ring, trail: createTrailTexture(), wake: createWakeTexture() };
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, url: string): Promise<T> {

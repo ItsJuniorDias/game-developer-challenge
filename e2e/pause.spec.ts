@@ -94,6 +94,10 @@ test.describe('Pause', () => {
     await expect(page.getByTestId('pause-dialog')).toBeVisible({ timeout: 20_000 });
     expect((await state(page)).phase).toBe('paused');
     expect((await state(page)).time).toBe(0);
+    // The "Set sail!" call-out waits for the battle to actually run.
+    await expect(page.getByTestId('start-banner')).toHaveCount(0);
+    await page.getByTestId('pause-resume').click();
+    await expect(page.getByTestId('start-banner')).toBeVisible();
   });
 
   test('losing focus while the combat screen downloads also starts the match paused', async ({ page }) => {

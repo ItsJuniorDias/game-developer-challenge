@@ -658,6 +658,51 @@ kbd {
   text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
+.result-score {
+  animation: score-reveal 560ms cubic-bezier(0.2, 1.4, 0.4, 1) 120ms both;
+}
+
+@keyframes score-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.result-stats {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+}
+
+.result-stats__item {
+  display: flex;
+  flex: 1;
+  flex-direction: column-reverse;
+  align-items: center;
+  max-width: 140px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--row);
+}
+
+.result-stats__item dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.result-stats__item dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--cream);
+}
+
 .result-summary {
   margin: 0;
   font-weight: 700;
@@ -1094,6 +1139,28 @@ kbd {
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
 }
 
+.hud__heart--low {
+  filter: drop-shadow(0 0 6px rgba(255, 70, 50, 0.9));
+  animation: heartbeat 0.9s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.2);
+  }
+  30% {
+    transform: scale(0.95);
+  }
+  45% {
+    transform: scale(1.1);
+  }
+}
+
 .health-bar {
   --bar-width: clamp(170px, 22vw, 256px);
   position: relative;
@@ -1115,6 +1182,16 @@ kbd {
   inset: 0 auto 0 0;
   overflow: hidden;
   transition: width 160ms ease-out;
+}
+
+.health-bar__clip--ghost {
+  /* Holds for a moment, then catches up: every hit leaves a short light trace. */
+  transition: width 420ms ease-in 220ms;
+}
+
+.health-bar__clip--ghost .health-bar__fill {
+  filter: brightness(1.9) saturate(0.35);
+  opacity: 0.85;
 }
 
 .health-bar__fill {
@@ -1168,6 +1245,18 @@ kbd {
   height: 1.2em;
 }
 
+.counter__value--pop {
+  display: inline-block;
+  animation: score-pop 420ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes score-pop {
+  from {
+    transform: scale(1.7);
+    color: var(--gold-light);
+  }
+}
+
 .counter--warning .counter__value {
   color: #ffb3a6;
   animation: pulse 1s ease-in-out infinite;
@@ -1176,6 +1265,36 @@ kbd {
 @keyframes pulse {
   50% {
     opacity: 0.55;
+  }
+}
+
+.damage-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.damage-vignette--low {
+  background: radial-gradient(ellipse at center, transparent 62%, rgba(170, 18, 8, 0.34) 100%);
+  animation: low-health 1.1s ease-in-out infinite;
+}
+
+@keyframes low-health {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.damage-vignette__flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(220, 28, 16, 0.4) 100%);
+  animation: damage-flash 380ms ease-out forwards;
+}
+
+@keyframes damage-flash {
+  to {
+    opacity: 0;
   }
 }
 
@@ -1300,6 +1419,32 @@ kbd {
   opacity: 0.45;
 }
 
+/* Registered so the reload sweep angle can animate smoothly. */
+@property --sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.pad-button__cooldown {
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(transparent var(--sweep), rgba(6, 12, 22, 0.6) var(--sweep));
+  animation: reload var(--cooldown, 1s) linear forwards;
+}
+
+@keyframes reload {
+  to {
+    --sweep: 360deg;
+  }
+}
+
+.touch-controls[data-paused] .pad-button__cooldown {
+  animation-play-state: paused;
+}
+
 .pad-button:disabled {
   opacity: 0.5;
 }
@@ -1342,21 +1487,32 @@ kbd {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  width: min(100%, 420px);
-  padding: 26px 28px;
+  width: min(100%, 440px);
+  padding: 0;
   text-align: center;
-  background: rgba(20, 31, 46, 0.94);
-  border: 3px solid #8a5a2b;
-  border-radius: 18px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  /* Same wooden board as the dialogs (9-slice). */
+  background: transparent;
+  border-style: solid;
+  border-width: 44px 36px;
+  border-image-source: image-set(
+    url('../../assets/png/default/ui/menu/panel_menu.png') 1x,
+    url('../../assets/png/retina/ui/menu/panel_menu.png') 2x
+  );
+  border-image-slice: 40 32 fill;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.45));
 }
 
 .overlay__title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 800;
   text-transform: uppercase;
   color: #fde8b8;
+  text-shadow: 0 2px 0 #6b3d13;
+}
+
+.overlay__card--banner .overlay__title {
+  font-size: 2rem;
 }
 
 .overlay__text {
@@ -1408,6 +1564,120 @@ kbd {
 .rotate-hint {
   z-index: 5;
   background: rgba(6, 12, 22, 0.9);
+}
+
+/* ---------- Battle start call-out ---------- */
+
+.start-banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+  text-align: center;
+  animation: start-banner 2.2s ease-in-out forwards;
+}
+
+.start-banner p {
+  margin: 0;
+}
+
+.start-banner__title {
+  font-size: clamp(2.6rem, 7vw, 4.4rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fde8b8;
+  -webkit-text-stroke: 8px #3a230f;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 12px rgba(0, 0, 0, 0.45);
+}
+
+.start-banner__text {
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  font-weight: 800;
+  color: #fff;
+  -webkit-text-stroke: 4px #10161f;
+  paint-order: stroke fill;
+}
+
+/* Holds while the match is paused, so the call-out is seen when play resumes. */
+.game-screen:not([data-phase='running']) .start-banner {
+  animation-play-state: paused;
+}
+
+@keyframes start-banner {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  20% {
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+
+/* ---------- Entrances ---------- */
+
+.screen__main > * {
+  animation: rise-in 280ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.screen__main > * + * {
+  animation-delay: 60ms;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.dialog[open] {
+  animation: dialog-in 200ms ease-out;
+}
+
+.dialog[open]::backdrop {
+  animation: fade-in 200ms ease-out;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.overlay__card--banner {
+  animation: banner-in 460ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 /* ---------- Responsive ---------- */
@@ -1480,6 +1750,11 @@ kbd {
     font-size: 2.8rem;
   }
 
+  /* No room on short landscape phones: the summary line keeps the essentials. */
+  .result-stats {
+    display: none;
+  }
+
   .result-actions {
     flex-direction: row;
     justify-content: center;
@@ -1531,7 +1806,9 @@ kbd {
 
   /* Infinite animations are removed, not sped up (a 0.01 ms loop would flicker). */
   .spinner,
-  .counter--warning .counter__value {
+  .counter--warning .counter__value,
+  .hud__heart--low,
+  .damage-vignette--low {
     animation: none !important;
   }
 }

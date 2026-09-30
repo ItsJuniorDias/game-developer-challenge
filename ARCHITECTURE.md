@@ -49,7 +49,7 @@ Responsibilities are split into four layers that only talk through narrow interf
 
 **Layout contract.** `GameScreen` measures the HUD with a `ResizeObserver` and passes its height to `session.setViewportInsets()`. The arena is fitted below that band, so the HUD never covers a ship, while the sea still fills the whole screen.
 
-**UI sync without per-frame React renders.** The session publishes a small `HudState` (`phase`, `score`, `timeLeft` in whole seconds, `health`, `pauseReason`, `endReason`, weapon readiness, load progress) through `HudStore`, an external store consumed with `useSyncExternalStore`. `HudStore.update()` compares every field and only notifies when something visible changed, so React renders a handful of times per second at most (typically once per second for the clock), never per frame. Continuous state (positions, velocities, projectiles, cooldown timers) stays in the simulation.
+**UI sync without per-frame React renders.** The session publishes a small `HudState` (`phase`, `score`, `timeLeft` in whole seconds, `health`, `pauseReason`, `endReason`, weapon readiness, shots per weapon, load progress) through `HudStore`, an external store consumed with `useSyncExternalStore`. `HudStore.update()` compares every field (nested objects one level deep) and only notifies when something visible changed, so React renders a handful of times per second at most (typically once per second for the clock), never per frame. Continuous state (positions, velocities, projectiles, cooldown timers) stays in the simulation.
 
 **React → game.** The touch joystick and buttons write directly into the session's `InputState` (the joystick moves its knob through the DOM, so dragging never re-renders React); the pause dialog calls `session.pause()` / `session.resume()`. React never reads or writes simulation entities.
 
@@ -111,19 +111,25 @@ Responsibilities are split into four layers that only talk through narrow interf
 stage
 └── world (scaled + centred; the sea sprite is stretched to the screen edges)
     ├── ArenaView       water TilingSprite, shallow halos, island tiles, rocks, plants, border
-    ├── effects.under   wakes, splashes, sinking wrecks
+    ├── wakes           WakeTrail per ship: two MeshRope foam streaks from the stern
+    ├── effects.under   stern foam, splashes, shockwaves, sinking wrecks, survivors, loose cannons
+    ├── ship shadows    hull silhouette per ship, offset on the water
     ├── ships           ShipView per ship (hull sprite by colour × damage tier, fire sprites)
-    ├── projectiles     pooled cannonball + tracer sprites
-    ├── effects.over    muzzle flashes, explosions, debris
-    └── health bars     HealthBar per ship (frame + cropped fill from the HUD atlas)
+    ├── projectiles     pooled cannonball + tracer + shadow sprites
+    ├── effects.over    muzzle flashes, explosions, embers, smoke, debris
+    ├── health bars     HealthBar per ship (frame + cropped fill from the HUD atlas)
+    └── floating text   pooled "+1" (enemy sunk by the player) and damage numbers on the player
 ```
 
-- **Damage feedback.** Hull textures switch between the 4 tiers of the sprite set (healthy, damaged, heavily damaged, wreck). Fires appear on damaged hulls, and ships flash red when hit. The screen shakes when the player is hit or rammed. Destroyed ships leave a sinking wreck, an animated explosion (3 frames) and wood debris.
+- **Damage feedback.** Hull textures switch between the 4 tiers of the sprite set (healthy, damaged, heavily damaged, wreck). Fires appear on damaged hulls, damaged ships trail smoke, and a hit ship flashes red with a short scale punch. The screen shakes when the player is hit, rammed or sunk. Destroyed ships leave a sinking wreck, a bloom, a shockwave ring, an animated explosion (3 frames), embers, wood debris and, for enemies, survivors swimming away and a floating cannon.
+- **Game feel.** Everything here is cosmetic and never feeds back into the simulation. Each ship casts a drop shadow and rolls gently on the swell (scale and angle, out of phase between ships). Its wake is two rope meshes sampled from the stern 30 times per second, so the streaks lengthen with speed and fan out as the foam ages. Cannonballs follow a fake arc: the ball grows and its shadow drifts away at the top of the flight (progress is distance or lifetime, whichever ends the shot first). A shot pushes the firing ship back a few units, and the player's own shots nudge the camera. When the OS asks for reduced motion, screen shake, camera kicks, the swell roll, recoil and the hit punch are all turned off (the red hit tint stays). Cosmetic randomness uses seeded generators, so screenshots stay deterministic.
+- **HUD feedback (DOM).** A red edge flash on every hit and a slow pulse below 30 % health (`DamageVignette`), a light "ghost" segment in the health bar that catches up after each hit, a heartbeat on the heart icon at low health, a pop on the score counter, a clockwise reload sweep on the weapon buttons (restarted for every shot through a per-weapon shot counter in `HudState`, and paused with the match), and a short "Set sail!" call-out once the battle first runs (it waits behind a start-up pause and holds while paused). All of it is `aria-hidden` and respects `prefers-reduced-motion`.
+- **Audio.** Combat sounds are panned by their horizontal position in the arena (the whole arena is on screen). Sounds away from the player (enemy fire, hits on enemies, splashes, enemy sinkings) get quieter with distance, down to 55 %. Every combat sample gets a small random pitch change so repeated shots do not sound mechanical; this uses `Math.random`, which is fine because audio never feeds the simulation. Menu buttons tick on mouse hover, only once audio is unlocked and the sample is decoded (a hover never queues sounds).
 - **Viewport.** `fitWorld()` scales the fixed world into the host while keeping its aspect ratio, and centres it. There are no visible bars: on every resize the water `TilingSprite` is stretched over the whole visible area (plus a margin for screen shake), and its tile offset is compensated so the pattern stays anchored to world space. The playable arena stays the fixed 16:9 rectangle. The renderer resolution follows `devicePixelRatio` (capped at 2) with `autoDensity`, and a `ResizeObserver` refits on any size or DPR change. Gameplay never sees screen pixels: input is intent-based and every rule runs in world units, so bounds and collisions are identical at any size. `screenToWorld()` is available for pointer mapping.
 - **One render per frame.** In realtime mode the session updates the scene inside the ticker and Pixi's own ticker hook presents it right after (`render(…, present = false)`). Only manual `advance()` calls present explicitly. The ticker's `minFPS` is set from `maxFrameCatchUpSeconds`, so Pixi does not clamp frame time at 100 ms before the fixed-step clock applies its own 0.25 s limit. Frame statistics use the raw `elapsedMS`.
 - **Health bars** sit above their ship, or below it when the ship hugs the top edge of the arena.
 - **Pixel density.** Besides the `ResizeObserver`, a `matchMedia('(resolution: …dppx)')` listener re-applies the resolution when the window moves to a display with another scale factor.
-- **Cost-conscious choices.** No MSAA (sprites are already filtered) and no world mask. Projectiles and particles are pooled (up to 700 particles). Health-bar fill textures are cropped once per 2% step and shared. With the manual test clock there are no animation frames at all.
+- **Cost-conscious choices.** No MSAA (sprites are already filtered) and no world mask. Projectiles, particles (up to 700) and floating numbers (up to 16) are pooled. Wake ropes reuse their points and stay small enough for Pixi to batch. Health-bar fill textures are cropped once per 2% step and shared. With the manual test clock there are no animation frames at all.
 
 ## 7. Resource management
 
@@ -131,6 +137,8 @@ stage
 | --- | --- | --- |
 | Textures (ship atlas, tile sheet, UI atlas, water) and generated FX textures | App lifetime, shared by every match | kept in Pixi's `Assets` cache and a module-level promise, so the next match starts without downloading |
 | Pixi `Application`, WebGL context, display objects, pools | One match | `GameRenderer.destroy()` → `app.destroy({ removeView: true }, { children: true, texture: false })`. Pixi loses the WebGL context explicitly |
+| Per-ship wake meshes, shadow and health bar | While the ship is alive | `ShipView.destroy()` when the ship leaves the world or the match ends |
+| Floating numbers (Pixi `Text` pool) and effect particles | One match | `FloatingTextLayer.destroy()` / `EffectsLayer.destroy()` from `GameRenderer.destroy()` (the text styles are shared constants) |
 | Ticker callback | One match | `ticker.remove()` + `ticker.stop()` |
 | Window/document listeners (`keydown`, `keyup`, `blur`, `pagehide`, `visibilitychange`) | While the match is mounted | `detachListeners()` / `keyboard.detach()` |
 | `ResizeObserver` | One match | `resizeObserver.disconnect()` |

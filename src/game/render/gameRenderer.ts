@@ -2,9 +2,10 @@ import { Application, Container } from 'pixi.js';
 import type { GameTextures } from '../assets/gameTextures';
 import { Rng } from '../core/rng';
 import type { ArenaLayout } from '../sim/arena';
-import type { SimEvent, WorldState } from '../sim/types';
+import type { ShipKind, SimEvent, WorldState } from '../sim/types';
 import { ArenaView } from './arenaView';
 import { EffectsLayer } from './effectsLayer';
+import { FloatingTextLayer } from './floatingText';
 import { ProjectileLayer } from './projectileView';
 import { ShipView } from './shipView';
 import { fitWorld, NO_INSETS, type ViewportFit, type ViewportInsets } from './viewport';
@@ -12,11 +13,25 @@ import { fitWorld, NO_INSETS, type ViewportFit, type ViewportInsets } from './vi
 const MAX_RESOLUTION = 2;
 const WAKE_INTERVAL = 0.07;
 const SHAKE_SECONDS = 0.25;
+/** Camera nudge (world units) when the player fires a broadside / the bow cannon. */
+const KICK_BROADSIDE = 3.5;
+const KICK_BOW = 1.5;
+const KICK_DECAY = 16;
+/** Visual recoil of the firing ship (world units). */
+const RECOIL_BROADSIDE = 4;
+const RECOIL_BOW = 2.5;
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+
+/** Top speed of each kind of ship, used to scale wakes. */
+export type ShipSpeeds = Readonly<Record<ShipKind, number>>;
 
 export interface RenderStats {
   ships: number;
   projectiles: number;
+  /** Pooled effect particles (limit 700). */
   particles: number;
+  /** Floating numbers ("+1", damage), pooled separately. */
+  texts: number;
 }
 
 /**
@@ -30,11 +45,14 @@ export class GameRenderer {
   private readonly layout: ArenaLayout;
   private readonly textures: GameTextures;
   private readonly world = new Container({ label: 'world' });
+  private readonly wakeLayer = new Container({ label: 'wakes' });
+  private readonly shadowLayer = new Container({ label: 'ship-shadows' });
   private readonly shipLayer = new Container({ label: 'ships' });
   private readonly barLayer = new Container({ label: 'health-bars' });
   private arena: ArenaView | null = null;
   private projectiles: ProjectileLayer | null = null;
   private effects: EffectsLayer | null = null;
+  private readonly floatingText = new FloatingTextLayer();
   private readonly ships = new Map<number, ShipView>();
   private readonly seenShips = new Set<number>();
   private readonly shakeRng = new Rng(7);
@@ -43,6 +61,10 @@ export class GameRenderer {
   private insets: ViewportInsets = NO_INSETS;
   private shakeX = 0;
   private shakeY = 0;
+  private kickX = 0;
+  private kickY = 0;
+  private readonly reducedMotion: MediaQueryList | null = typeof window.matchMedia === 'function' ? window.matchMedia(REDUCED_MOTION) : null;
+  private readonly speeds: ShipSpeeds;
   private fit: ViewportFit = { scale: 1, offsetX: 0, offsetY: 0, screenWidth: 1, screenHeight: 1 };
   private wakeClock = 0;
   private shakeTime = 0;
@@ -50,11 +72,12 @@ export class GameRenderer {
   private initialized = false;
   private destroyed = false;
 
-  constructor(host: HTMLElement, textures: GameTextures, layout: ArenaLayout, spawnFadeSeconds: number) {
+  constructor(host: HTMLElement, textures: GameTextures, layout: ArenaLayout, spawnFadeSeconds: number, speeds: ShipSpeeds) {
     this.host = host;
     this.textures = textures;
     this.layout = layout;
     this.spawnFadeSeconds = spawnFadeSeconds;
+    this.speeds = speeds;
   }
 
   async init(): Promise<void> {
@@ -92,7 +115,17 @@ export class GameRenderer {
     this.effects = new EffectsLayer(this.textures);
 
     // No mask: health bars of ships hugging the edge stay readable in the letterbox.
-    this.world.addChild(this.arena.view, this.effects.under, this.shipLayer, this.projectiles.view, this.effects.over, this.barLayer);
+    this.world.addChild(
+      this.arena.view,
+      this.wakeLayer,
+      this.effects.under,
+      this.shadowLayer,
+      this.shipLayer,
+      this.projectiles.view,
+      this.effects.over,
+      this.barLayer,
+      this.floatingText.view,
+    );
     this.app.stage.addChild(this.world);
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -114,6 +147,7 @@ export class GameRenderer {
       ships: this.ships.size,
       projectiles: this.projectiles?.activeCount ?? 0,
       particles: this.effects?.count ?? 0,
+      texts: this.floatingText.count,
     };
   }
 
@@ -123,20 +157,30 @@ export class GameRenderer {
     if (!fx) return;
     for (const event of events) {
       switch (event.type) {
-        case 'shot':
+        case 'shot': {
           fx.muzzle(event.x, event.y, event.angle, event.count);
+          const broadside = event.slot !== 'front';
+          this.ships.get(event.shipId)?.recoil(event.angle, broadside ? RECOIL_BROADSIDE : RECOIL_BOW);
+          if (event.owner === 'player') this.kick(event.angle, broadside ? KICK_BROADSIDE : KICK_BOW);
           break;
+        }
         case 'projectile_end':
           if (event.cause === 'expired' || event.cause === 'owner_destroyed') fx.splash(event.x, event.y);
           else if (event.cause === 'island') fx.dust(event.x, event.y);
           break;
         case 'ship_hit':
           fx.hit(event.x, event.y);
-          if (event.shipId === world.player.id) this.shakeTime = SHAKE_SECONDS;
+          if (event.shipId === world.player.id) {
+            this.shakeTime = SHAKE_SECONDS;
+            this.floatingText.spawn('damage', `-${event.damage}`, event.x + 26, event.y - 40);
+          }
           break;
         case 'ship_destroyed':
           fx.wreck(event.kind, event.x, event.y, event.rotation);
           fx.explosion(event.x, event.y, event.kind === 'player' ? 1.6 : 1.1);
+          if (event.kind === 'player') this.shakeTime = SHAKE_SECONDS * 2;
+          // Only a sinking caused by the player's cannons scores.
+          if (event.kind !== 'player' && event.cause === 'player_fire') this.floatingText.spawn('score', '+1', event.x, event.y - 30);
           break;
         case 'rammed':
           fx.explosion(event.x, event.y, 1.3);
@@ -166,6 +210,7 @@ export class GameRenderer {
     if (dt > 0) {
       this.arena?.update(dt);
       this.effects?.update(dt);
+      this.floatingText.update(dt);
       this.spawnWakes(world, dt);
     }
     this.applyShake(dt);
@@ -191,10 +236,13 @@ export class GameRenderer {
       if (!view) {
         view = new ShipView(this.textures, ship, ship.kind === 'player' ? 0 : this.spawnFadeSeconds);
         this.ships.set(ship.id, view);
+        this.wakeLayer.addChild(view.wake.view);
+        this.shadowLayer.addChild(view.shadow);
         this.shipLayer.addChild(view.body);
         this.barLayer.addChild(view.healthBar.view);
       }
-      view.sync(ship, alpha, dt, this.spawnFadeSeconds);
+      view.sync(ship, alpha, dt, this.spawnFadeSeconds, this.speeds[ship.kind], this.reducedMotion?.matches ?? false);
+      if (view.smokeDue(dt)) this.effects?.smoke(view.body.x, view.body.y);
     }
     for (const [id, view] of this.ships) {
       if (this.seenShips.has(id)) continue;
@@ -216,20 +264,34 @@ export class GameRenderer {
     }
   }
 
+  /** Nudges the camera opposite to a shot (recoil feel). */
+  private kick(angle: number, strength: number): void {
+    if (this.reducedMotion?.matches) return;
+    this.kickX -= Math.cos(angle) * strength;
+    this.kickY -= Math.sin(angle) * strength;
+  }
+
   private applyShake(dt: number): void {
     // Shake only evolves while cosmetic time runs: a paused frame keeps its offset.
     if (dt > 0) {
-      if (this.shakeTime > 0) {
+      const calm = this.reducedMotion?.matches ?? false;
+      if (this.shakeTime > 0 && !calm) {
         this.shakeTime = Math.max(0, this.shakeTime - dt);
         const strength = (this.shakeTime / SHAKE_SECONDS) * 6;
         this.shakeX = this.shakeRng.range(-strength, strength);
         this.shakeY = this.shakeRng.range(-strength, strength);
       } else {
+        this.shakeTime = 0;
         this.shakeX = 0;
         this.shakeY = 0;
       }
+      const decay = Math.exp(-KICK_DECAY * dt);
+      this.kickX *= decay;
+      this.kickY *= decay;
     }
-    this.world.position.set(this.fit.offsetX + this.shakeX * this.fit.scale, this.fit.offsetY + this.shakeY * this.fit.scale);
+    const x = this.shakeX + this.kickX;
+    const y = this.shakeY + this.kickY;
+    this.world.position.set(this.fit.offsetX + x * this.fit.scale, this.fit.offsetY + y * this.fit.scale);
   }
 
   /** Re-applies the resolution when the device pixel ratio changes without a CSS resize (e.g. moving to another display). */
@@ -288,6 +350,7 @@ export class GameRenderer {
     this.ships.clear();
     this.projectiles?.destroy();
     this.effects?.destroy();
+    this.floatingText.destroy();
     // Shared textures stay cached (Assets) for the next match; only scene objects are freed.
     this.app.destroy({ removeView: true }, { children: true, texture: false, textureSource: false });
   }

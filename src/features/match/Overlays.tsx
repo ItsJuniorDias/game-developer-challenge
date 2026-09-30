@@ -1,5 +1,6 @@
 import type { EndReason } from '../../game/sim/types';
 import { GameButton } from '../../ui/GameButton';
+import { formatClock } from '../../ui/format';
 
 export function LoadingOverlay({ progress }: { readonly progress: number }) {
   const percent = Math.round(progress * 100);
@@ -64,6 +65,19 @@ export function RotateHint() {
         <h2 className="overlay__title">Rotate your device</h2>
         <p className="overlay__text">Pirate Battle is played in landscape. Turn your phone sideways, then resume.</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Brief "Set sail!" call-out when the battle starts. Decorative only (the live
+ * region announces the battle); it never blocks input and removes itself.
+ */
+export function StartBanner({ seconds, onDone }: { readonly seconds: number; readonly onDone: () => void }) {
+  return (
+    <div className="start-banner" aria-hidden="true" data-testid="start-banner" onAnimationEnd={onDone}>
+      <p className="start-banner__title">Set sail!</p>
+      <p className="start-banner__text">Sink as many ships as you can in {formatClock(seconds)}</p>
     </div>
   );
 }

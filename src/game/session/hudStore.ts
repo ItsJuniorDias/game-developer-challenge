@@ -16,9 +16,21 @@ export interface HudState {
   readonly maxHealth: number;
   readonly endReason: EndReason | null;
   readonly weaponsReady: { readonly front: boolean; readonly left: boolean; readonly right: boolean };
+  /** Shots fired per weapon: each change starts a new reload (the HUD restarts its sweep). */
+  readonly reloads: { readonly front: number; readonly left: number; readonly right: number };
 }
 
 type Listener = () => void;
+
+/** Equal primitives, or plain objects whose own values are all identical (one level deep). */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every((key) => left[key] === right[key]);
+}
 
 export class HudStore {
   private state: HudState;
@@ -39,18 +51,7 @@ export class HudStore {
 
   /** Publishes a new snapshot only when a visible value actually changed. */
   update(patch: Partial<HudState>): void {
-    let changed = false;
-    for (const key of Object.keys(patch) as (keyof HudState)[]) {
-      const next = patch[key];
-      const prev = this.state[key];
-      if (key === 'weaponsReady' && next && prev) {
-        const a = next as HudState['weaponsReady'];
-        const b = prev as HudState['weaponsReady'];
-        if (a.front !== b.front || a.left !== b.left || a.right !== b.right) changed = true;
-      } else if (next !== prev) {
-        changed = true;
-      }
-    }
+    const changed = (Object.keys(patch) as (keyof HudState)[]).some((key) => !sameValue(patch[key], this.state[key]));
     if (!changed) return;
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();

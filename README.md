@@ -120,7 +120,7 @@ All of them are optional. See [.env.example](.env.example).
 | Main menu | `#/` | **Play**, **Options**, the control instructions (side panel, or **How to Play** on short screens), and the **Ranking** / **Match History** tabs of the Captain's Log |
 | Options | `#/options` | Game session time, enemy spawn time, captain name, sound; validated, saved, persisted |
 | Battle | `#/play` | PixiJS arena, HUD, touch controls, pause dialog (with Options and Controls) |
-| Result | `#/result` | Total score, time played, end reason, record status, **Play Again**, **Main Menu** (survives a refresh) |
+| Result | `#/result` | Total score, time played, end reason, battle stats (enemies faced, shots fired, damage taken), record status, **Play Again**, **Main Menu** (survives a refresh) |
 | Captain's Log | `#/log/ranking`, `#/log/history` | Ranking and Match History tabs with pagination |
 
 As in the reference art (`assets/sample_menu.png` and `assets/sample_ranking.png`), the Ranking and Match History entries on the main menu open the Captain's Log board directly on that tab. Inside the board they are real WAI-ARIA tabs, and each tab has its own URL.
@@ -136,6 +136,17 @@ As in the reference art (`assets/sample_menu.png` and `assets/sample_ranking.png
 - The match ends when time runs out (**Time up**) or the player's health reaches zero (**Defeated**). From then on, movement, attacks, damage, spawns and scoring all stop.
 - Pause is manual or automatic (window loses focus, tab hidden, or phone in portrait). Resuming always requires a player action, and keys held during the pause are ignored until pressed again.
 - Reloading the page or leaving the combat screen abandons the match, which is never recorded.
+
+### Feedback
+
+Every action has visible and audible feedback, all purely cosmetic (the rules above never depend on it):
+
+- **Ships** cast shadows, roll on the swell and leave twin foam wakes that grow with speed. Firing pushes the ship back a little (and nudges the camera for the player's shots).
+- **Cannonballs** fly a fake arc with a shadow on the water; they splash in the sea and throw dust on rocks.
+- **Hits** flash the hull, punch its scale, throw splinters and embers; damaged ships burn and smoke. A sunk enemy explodes with a shockwave, leaves a sinking wreck, a floating cannon and a sailor or two swimming away, and shows **+1** where it sank.
+- **The player** sees the damage taken as a number, a red flash at the screen edges, a health bar that leaves a short light trace, and a pulsing vignette and heartbeat below 30 % health. The screen shakes on hits, rams and when the ship sinks. With *reduce motion* enabled, shake, camera kicks, ship roll, recoil and pulsing effects are turned off.
+- **HUD:** the score pops on each point, the weapon buttons show a reload sweep after every shot, and a *Set sail!* call-out opens the battle.
+- **Sound:** combat sounds are panned by where they happen, sounds far from the player (enemy fire, splashes, sinkings) are quieter, and every shot varies slightly in pitch.
 
 ## Gameplay configuration
 
@@ -344,7 +355,7 @@ Public URL: **https://game-developer-challenge.vercel.app** (Vercel, deployed fr
 
 - **Ship, tile and effect sprites:** provided with the challenge in `assets/`; they follow the style and file names of [Kenney](https://kenney.nl)'s *Pirate Pack* (CC0).
 - **UI (panels, buttons, HUD), sounds and reference images:** provided with the challenge in `assets/`.
-- The ships' XML atlas is converted at runtime into a Pixi spritesheet. Effect textures (circle, ring and trail) are generated procedurally on a canvas.
+- The ships' XML atlas is converted at runtime into a Pixi spritesheet. Effect textures (circle, ring, tracer and wake foam) are generated procedurally on a canvas.
 - **Rubik font:** SIL Open Font License 1.1, distributed by the `@fontsource/rubik` package.
 - Code: © Alexandre de Paula Dias Junior.
 

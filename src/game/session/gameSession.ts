@@ -9,7 +9,7 @@ import { GameRenderer } from '../render/gameRenderer';
 import { NO_INSETS, type ViewportInsets } from '../render/viewport';
 import { DEFAULT_LAYOUT, type ArenaLayout } from '../sim/arena';
 import { Simulation, type SimSnapshot } from '../sim/simulation';
-import type { SimEvent } from '../sim/types';
+import type { SimEvent, WeaponSlot } from '../sim/types';
 import { FixedStepClock } from './clock';
 import { FrameStats } from './frameStats';
 import { HudStore, type HudState, type PauseReason, type SessionPhase } from './hudStore';
@@ -27,6 +27,13 @@ export interface GameSessionOptions {
 
 const TIME_WARNING_SECONDS = 10;
 const LOW_HEALTH_RATIO = 0.3;
+/** How far sounds are panned at the arena edges (0 = mono, 1 = hard left/right). */
+const STEREO_WIDTH = 0.6;
+/** Enemy sounds get quieter with distance from the player, down to this share. */
+const FAR_VOLUME = 0.55;
+const FAR_DISTANCE = 1400;
+/** Random pitch spread so repeated samples do not sound mechanical. */
+const PITCH_SPREAD = 0.06;
 
 /**
  * One match: wires the simulation, the Pixi renderer, input and audio, and
@@ -58,6 +65,7 @@ export class GameSession {
   private pendingCosmetic = 0;
   private insets: ViewportInsets = NO_INSETS;
   private pendingAutoPause: PauseReason | null = null;
+  private readonly reloads: Record<WeaponSlot, number> = { front: 0, left: 0, right: 0 };
 
   constructor(options: GameSessionOptions) {
     const test = options.test ?? null;
@@ -93,6 +101,7 @@ export class GameSession {
       maxHealth: player.maxHealth,
       endReason: null,
       weaponsReady: { front: true, left: true, right: true },
+      reloads: { front: 0, left: 0, right: 0 },
     });
   }
 
@@ -129,7 +138,11 @@ export class GameSession {
     }
     if (token !== this.loadToken || this.isDisposed()) return;
 
-    const renderer = new GameRenderer(this.host, textures, this.layout, this.config.spawn.graceSeconds);
+    const renderer = new GameRenderer(this.host, textures, this.layout, this.config.spawn.graceSeconds, {
+      player: this.config.player.maxSpeed,
+      chaser: this.config.chaser.maxSpeed,
+      shooter: this.config.shooter.maxSpeed,
+    });
     this.renderer = renderer;
     try {
       await renderer.init();
@@ -308,27 +321,33 @@ export class GameSession {
       switch (event.type) {
         case 'shot':
           if (event.owner === 'player') {
-            if (event.slot === 'front') this.play(pickVariant(['cannon_fire_1', 'cannon_fire_2'], event.shipId + world.stats.shotsFired), 0.55);
-            else this.play('cannon_broadside', 0.6);
+            this.reloads[event.slot]++;
+            if (event.slot === 'front') this.playAt(pickVariant(['cannon_fire_1', 'cannon_fire_2'], event.shipId + world.stats.shotsFired), 0.55, event.x);
+            else this.playAt('cannon_broadside', 0.6, event.x);
           } else {
-            this.play('cannon_fire_3', 0.3);
+            this.playAt('cannon_fire_3', 0.3, event.x, event.y);
           }
           break;
         case 'projectile_end':
-          if (event.cause === 'expired') this.play(pickVariant(['cannonball_water_hit_1', 'cannonball_water_hit_2'], event.id), 0.25);
+          if (event.cause === 'expired') this.playAt(pickVariant(['cannonball_water_hit_1', 'cannonball_water_hit_2'], event.id), 0.25, event.x, event.y);
           break;
         case 'ship_hit':
-          this.play(pickVariant(['ship_wood_hit_1', 'ship_wood_hit_2'], event.shipId), event.kind === 'player' ? 0.7 : 0.45);
+          if (event.kind === 'player') this.playAt(pickVariant(['ship_wood_hit_1', 'ship_wood_hit_2'], event.shipId), 0.7, event.x);
+          else this.playAt(pickVariant(['ship_wood_hit_1', 'ship_wood_hit_2'], event.shipId), 0.45, event.x, event.y);
           break;
         case 'ship_destroyed':
-          this.play(pickVariant(['ship_explosion_1', 'ship_explosion_2'], event.shipId), 0.7);
-          this.play('ship_sinking', 0.35);
+          {
+            // An enemy sinking far away is quieter; the player's own ship always plays at full volume.
+            const y = event.kind === 'player' ? undefined : event.y;
+            this.playAt(pickVariant(['ship_explosion_1', 'ship_explosion_2'], event.shipId), 0.7, event.x, y);
+            this.playAt('ship_sinking', 0.35, event.x, y);
+          }
           break;
         case 'rammed':
-          this.play('ship_collision', 0.8);
+          this.playAt('ship_collision', 0.8, event.x);
           break;
         case 'ship_bump':
-          this.play('ship_collision', 0.35);
+          this.playAt('ship_collision', 0.35, event.x);
           break;
         case 'score_changed':
           this.play('score_point', 0.5);
@@ -364,6 +383,7 @@ export class GameSession {
         left: world.time >= player.readyAt.left,
         right: world.time >= player.readyAt.right,
       },
+      reloads: { ...this.reloads },
     });
   }
 
@@ -393,6 +413,23 @@ export class GameSession {
 
   private play(name: SoundName, volume: number): void {
     sounds.play(name, { volume });
+  }
+
+  /**
+   * Plays a combat sound panned by its position across the arena (the whole
+   * arena is on screen). With `y`, it also fades with distance from the player.
+   */
+  private playAt(name: SoundName, volume: number, x: number, y?: number): void {
+    const half = this.layout.width / 2;
+    const pan = ((x - half) / half) * STEREO_WIDTH;
+    let gain = volume;
+    if (y !== undefined) {
+      const player = this.sim.world.player;
+      const distance = Math.hypot(x - player.x, y - player.y);
+      gain *= 1 - (1 - FAR_VOLUME) * Math.min(1, distance / FAR_DISTANCE);
+    }
+    const rate = 1 + (Math.random() * 2 - 1) * PITCH_SPREAD;
+    sounds.play(name, { volume: gain, pan, rate });
   }
 
   private setPhase(phase: SessionPhase, patch: Partial<HudState> = {}): void {

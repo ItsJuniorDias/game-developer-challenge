@@ -56,6 +56,10 @@ function urlFor(name: SoundName): string | undefined {
 interface PlayOptions {
   volume?: number;
   rate?: number;
+  /** Stereo position, -1 (left) … 1 (right). */
+  pan?: number;
+  /** Only play if audio output is already running (never creates or resumes the context), e.g. hover feedback. */
+  ifUnlocked?: boolean;
 }
 
 interface Loop {
@@ -72,6 +76,8 @@ class SoundManager {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
   private readonly buffers = new Map<SoundName, Promise<AudioBuffer | null>>();
+  /** Samples already decoded (lets optional feedback skip a sound instead of queueing it). */
+  private readonly decoded = new Set<SoundName>();
   private readonly loops = new Map<SoundName, Loop>();
   /** Loops that should be playing; a loop whose buffer arrives late only starts if still wanted. */
   private readonly wantedLoops = new Set<SoundName>();
@@ -144,6 +150,14 @@ class SoundManager {
 
   play(name: SoundName, options: PlayOptions = {}): void {
     if (!this.enabled) return;
+    if (options.ifUnlocked) {
+      if (this.context?.state !== 'running') return;
+      // Not decoded yet: fetch it for next time rather than queueing late, stacked plays.
+      if (!this.decoded.has(name)) {
+        void this.buffer(name);
+        return;
+      }
+    }
     const ctx = this.ensureContext();
     if (!ctx || !this.master) return;
     // Avoid stacking the same sample many times in a single frame.
@@ -158,7 +172,16 @@ class SoundManager {
       source.playbackRate.value = options.rate ?? 1;
       const gain = ctx.createGain();
       gain.gain.value = options.volume ?? 1;
-      source.connect(gain).connect(this.master);
+      let output: AudioNode = gain;
+      // StereoPannerNode is missing on some older Safari versions: play centred there.
+      if (options.pan && typeof ctx.createStereoPanner === 'function') {
+        const panner = ctx.createStereoPanner();
+        panner.pan.value = Math.max(-1, Math.min(1, options.pan));
+        gain.connect(panner);
+        output = panner;
+      }
+      source.connect(gain);
+      output.connect(this.master);
       source.start();
     });
   }
@@ -231,6 +254,10 @@ class SoundManager {
     pending = fetch(url)
       .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
       .then((data) => ctx.decodeAudioData(data))
+      .then((decoded) => {
+        this.decoded.add(name);
+        return decoded;
+      })
       .catch(() => {
         // Allow a later retry if this sample failed to load.
         this.buffers.delete(name);

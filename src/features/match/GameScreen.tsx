@@ -7,8 +7,9 @@ import type { HudState } from '../../game/session/hudStore';
 import type { MatchResult } from '../../game/session/matchResult';
 import { readTestConfig } from '../../game/session/testConfig';
 import { getOptions } from '../../storage/settings';
+import { DamageVignette } from './DamageVignette';
 import { Hud } from './Hud';
-import { EndBanner, LoadErrorOverlay, LoadingOverlay, RotateHint } from './Overlays';
+import { EndBanner, LoadErrorOverlay, LoadingOverlay, RotateHint, StartBanner } from './Overlays';
 import { PauseDialog } from './PauseDialog';
 import { TouchControls } from './TouchControls';
 import { useAnnouncements } from './useAnnouncements';
@@ -40,6 +41,9 @@ export function GameScreen() {
   const screenRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [session, setSession] = useState<GameSession | null>(null);
+  const [introDone, setIntroDone] = useState(false);
+  // The call-out waits until the battle actually runs (a match can start paused).
+  const [introStarted, setIntroStarted] = useState(false);
   const endTimer = useRef<number | null>(null);
   const portrait = usePortraitTouch();
 
@@ -82,6 +86,7 @@ export function GameScreen() {
     session ? session.store.subscribe : noopSubscribe,
     session ? session.store.getSnapshot : nullSnapshot,
   );
+  if (!introStarted && hud?.phase === 'running') setIntroStarted(true);
   const announcement = useAnnouncements(hud);
   const hudVisible = hud !== null && hud.phase !== 'loading' && hud.phase !== 'error';
 
@@ -118,8 +123,16 @@ export function GameScreen() {
         <>
           {hud.phase !== 'loading' && hud.phase !== 'error' ? (
             <>
+              <DamageVignette health={hud.health} maxHealth={hud.maxHealth} />
+              {introStarted && !introDone && hud.phase !== 'ended' ? (
+                <StartBanner seconds={session.config.match.durationSeconds} onDone={() => setIntroDone(true)} />
+              ) : null}
               <Hud hud={hud} onPause={() => session.pause('manual')} />
-              <TouchControls input={session.input} hud={hud} />
+              <TouchControls
+                input={session.input}
+                hud={hud}
+                cooldowns={{ front: session.config.player.frontCannon.cooldownSeconds, broadside: session.config.player.broadside.cooldownSeconds }}
+              />
             </>
           ) : null}
           {hud.phase === 'loading' ? <LoadingOverlay progress={hud.loadProgress} /> : null}

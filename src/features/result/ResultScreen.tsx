@@ -26,6 +26,11 @@ export function ResultScreen() {
   }
   const { result } = last;
   const reason = formatEndReason(result.endReason);
+  const stats = [
+    { label: 'Enemies faced', value: result.stats.enemiesSpawned },
+    { label: 'Shots fired', value: result.stats.shotsFired },
+    { label: 'Damage taken', value: result.stats.damageTaken },
+  ].filter((stat) => Number.isFinite(stat.value));
   return (
     <Screen title="Result">
       <Panel aria-labelledby="result-title" className="result-panel" data-testid="result-panel">
@@ -46,6 +51,16 @@ export function ResultScreen() {
           <dt>End reason</dt>
           <dd>{reason}</dd>
         </dl>
+        {stats.length > 0 ? (
+          <dl className="result-stats" data-testid="result-stats">
+            {stats.map((stat) => (
+              <div key={stat.label} className="result-stats__item">
+                <dt>{stat.label}</dt>
+                <dd>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         <p className="result-meta" data-testid="result-meta">
           {result.config.sessionTimeSeconds} s battle · {result.config.spawnIntervalSeconds} s spawns · {last.playerName}
         </p>

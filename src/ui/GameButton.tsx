@@ -22,6 +22,10 @@ export function GameButton({ variant = 'primary', size = 'large', sound = 'click
       type={type}
       className={['game-button', `game-button--${variant}`, `game-button--${size}`, className].filter(Boolean).join(' ')}
       aria-disabled={unavailable || undefined}
+      onPointerEnter={(event) => {
+        // A soft tick for mouse hover only; never unlocks audio on its own.
+        if (event.pointerType === 'mouse' && !unavailable && !rest.disabled) sounds.play('ui_hover', { volume: 0.18, ifUnlocked: true });
+      }}
       onClick={(event) => {
         if (unavailable) {
           event.preventDefault();
