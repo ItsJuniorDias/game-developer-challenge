@@ -426,6 +426,12 @@ kbd {
   width: min(100%, 380px);
 }
 
+/* Plain text at the top and bottom of this board: keep it clear of the wooden frame. */
+.controls-panel .panel__content {
+  margin-top: -8px;
+  margin-bottom: -6px;
+}
+
 .menu-howto {
   display: none;
 }
@@ -472,6 +478,7 @@ kbd {
 
 .controls-guide__touch {
   margin: 10px 0 0;
+  padding: 0 8px;
   font-size: 0.85rem;
   color: var(--muted);
   text-align: center;
